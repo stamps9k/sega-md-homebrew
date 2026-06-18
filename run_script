@@ -1,0 +1,1 @@
+/Applications/RetroArch.app/Contents/MacOS/RetroArch -L $HOME/Library/Application\ Support/RetroArch/cores/genesis_plus_gx_libretro.dylib --verbose pkg/hello.bin 2>&1 | tee logs/retroarch.log

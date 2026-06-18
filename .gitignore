@@ -1,0 +1,11 @@
+# Testing log files
+logs
+
+# Build Files
+build
+
+# Compiled packages
+pkg
+
+# mac indexing files
+.DS_Store
