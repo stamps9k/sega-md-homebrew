@@ -1,3 +1,5 @@
+	section .text
+
 ; =============================================================================
 ; header.s — Sega Megadrive ROM header and 68000 vector table
 ;
@@ -10,107 +12,122 @@
 ; Without this the hardware (and most emulators) will refuse to boot.
 ; =============================================================================
 
-    ; -------------------------------------------------------------------------
-    ; 68000 Vector Table ($000000 - $0000FF)
-    ; Each entry is a longword (4 bytes) address.
-    ; The CPU reads these on reset and exception.
-    ; -------------------------------------------------------------------------
+	xref frame_count
+	xref vblank_flag
 
-    dc.l    $00FFE000           ; Initial SSP (stack grows down from top of RAM)
-    dc.l    EntryPoint          ; Initial PC — where execution begins
+	; -------------------------------------------------------------------------
+	; 68000 Vector Table ($000000 - $0000FF)
+	; Each entry is a longword (4 bytes) address.
+	; The CPU reads these on reset and exception.
+	; -------------------------------------------------------------------------
 
-    ; Exception vectors — all point to a simple halt loop for now
-    dc.l    BusError            ; Bus error
-    dc.l    AddressError        ; Address error
-    dc.l    IllegalInstr        ; Illegal instruction
-    dc.l    DivByZero           ; Division by zero
-    dc.l    ChkInstr            ; CHK instruction
-    dc.l    TrapV               ; TRAPV instruction
-    dc.l    PrivViolation       ; Privilege violation
-    dc.l    Trace               ; Trace
-    dc.l    Line1010            ; Line 1010 emulator
-    dc.l    Line1111            ; Line 1111 emulator
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Spurious interrupt
-    dc.l    ErrorHandler        ; Level 1 interrupt (V-blank)
-    dc.l    ErrorHandler        ; Level 2 interrupt
-    dc.l    ErrorHandler        ; Level 3 interrupt (H-blank)
-    dc.l    ErrorHandler        ; Level 4 interrupt
-    dc.l    ErrorHandler        ; Level 5 interrupt
-    dc.l    ErrorHandler        ; Level 6 interrupt
-    dc.l    ErrorHandler        ; Level 7 interrupt
-    dc.l    ErrorHandler        ; TRAP #0
-    dc.l    ErrorHandler        ; TRAP #1
-    dc.l    ErrorHandler        ; TRAP #2
-    dc.l    ErrorHandler        ; TRAP #3
-    dc.l    ErrorHandler        ; TRAP #4
-    dc.l    ErrorHandler        ; TRAP #5
-    dc.l    ErrorHandler        ; TRAP #6
-    dc.l    ErrorHandler        ; TRAP #7
-    dc.l    ErrorHandler        ; TRAP #8
-    dc.l    ErrorHandler        ; TRAP #9
-    dc.l    ErrorHandler        ; TRAP #10
-    dc.l    ErrorHandler        ; TRAP #11
-    dc.l    ErrorHandler        ; TRAP #12
-    dc.l    ErrorHandler        ; TRAP #13
-    dc.l    ErrorHandler        ; TRAP #14
-    dc.l    ErrorHandler        ; TRAP #15
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
-    dc.l    ErrorHandler        ; Reserved
+	dc.l    $00FFE000           ; Initial SSP (stack grows down from top of RAM)
+	dc.l    entryPoint          ; Initial PC — where execution begins
 
-    ; -------------------------------------------------------------------------
-    ; Megadrive ROM Header ($000100 - $0001FF)
-    ; Fixed-length ASCII fields — must be exactly the right number of bytes.
-    ; -------------------------------------------------------------------------
+	; Exception vectors — all point to a simple halt loop for now
+	dc.l    busError            ; Bus error
+	dc.l    addressError        ; Address error
+	dc.l    illegalInstr        ; Illegal instruction
+	dc.l    divByZero           ; Division by zero
+	dc.l    chkInstr            ; CHK instruction
+	dc.l    trapV               ; TRAPV instruction
+	dc.l    privViolation       ; Privilege violation
+	dc.l    trace               ; Trace
+	dc.l    line1010            ; Line 1010 emulator
+	dc.l    line1111            ; Line 1111 emulator
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Spurious interrupt
+	dc.l    errorHandler        ; Level 1 interrupt
+	dc.l    errorHandler        ; Level 2 interrupt
+	dc.l    errorHandler        ; Level 3 interrupt 
+	dc.l    errorHandler        ; Level 4 interrupt (H-blank)
+	dc.l    errorHandler        ; Level 5 interrupt
+	dc.l    vblankInterrupt     ; Level 6 interrupt (V-blank)
+	dc.l    errorHandler        ; Level 7 interrupt
+	dc.l    errorHandler        ; TRAP #0
+	dc.l    errorHandler        ; TRAP #1
+	dc.l    errorHandler        ; TRAP #2
+	dc.l    errorHandler        ; TRAP #3
+	dc.l    errorHandler        ; TRAP #4
+	dc.l    errorHandler        ; TRAP #5
+	dc.l    errorHandler        ; TRAP #6
+	dc.l    errorHandler        ; TRAP #7
+	dc.l    errorHandler        ; TRAP #8
+	dc.l    errorHandler        ; TRAP #9
+	dc.l    errorHandler        ; TRAP #10
+	dc.l    errorHandler        ; TRAP #11
+	dc.l    errorHandler        ; TRAP #12
+	dc.l    errorHandler        ; TRAP #13
+	dc.l    errorHandler        ; TRAP #14
+	dc.l    errorHandler        ; TRAP #15
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
+	dc.l    errorHandler        ; Reserved
 
-    dc.b    "SEGA MEGA DRIVE "  ; Console name (16 bytes, space padded)
-    dc.b    "(C)XXXX 2024.JAN" ; Copyright/date (16 bytes)
-    dc.b    "HELLO WORLD                                     " ; Domestic name (48 bytes)
-    dc.b    "HELLO WORLD                                     " ; Overseas name (48 bytes)
-    dc.b    "GM 00000000-00"    ; Serial/revision (14 bytes)
-    dc.w    $0000               ; Checksum (0 for now — emulators generally ignore)
-    dc.b    "J               "  ; I/O support (16 bytes)
-    dc.l    $00000000           ; ROM start address
-    dc.l    $000FFFFF           ; ROM end address
-    dc.l    $00FF0000           ; RAM start address
-    dc.l    $00FFFFFF           ; RAM end address
-    dc.b    "            "      ; SRAM info (12 bytes, unused)
-    dc.b    "        "          ; Modem info (8 bytes, unused)
-    dc.b    "                                        " ; Notes (40 bytes)
-    dc.b    "JUE             "  ; Region (16 bytes — J=Japan, U=USA, E=Europe)
+	; -------------------------------------------------------------------------
+	; Megadrive ROM Header ($000100 - $0001FF)
+	; Fixed-length ASCII fields — must be exactly the right number of bytes.
+	; -------------------------------------------------------------------------
 
-    ; -------------------------------------------------------------------------
-    ; Exception/error handlers
-    ; For now these all just halt. In a real project you might display
-    ; a crash screen or log register state.
-    ; -------------------------------------------------------------------------
+	dc.b    "SEGA MEGA DRIVE "  ; Console name (16 bytes, space padded)
+	dc.b    "(C)XXXX 2024.JAN" ; Copyright/date (16 bytes)
+	dc.b    "HELLO WORLD                                     " ; Domestic name (48 bytes)
+	dc.b    "HELLO WORLD                                     " ; Overseas name (48 bytes)
+	dc.b    "GM 00000000-00"    ; Serial/revision (14 bytes)
+	dc.w    $0000               ; Checksum (0 for now — emulators generally ignore)
+	dc.b    "J               "  ; I/O support (16 bytes)
+	dc.l    $00000000           ; ROM start address
+	dc.l    $000FFFFF           ; ROM end address
+	dc.l    $00FF0000           ; RAM start address
+	dc.l    $00FFFFFF           ; RAM end address
+	dc.b    "            "      ; SRAM info (12 bytes, unused)
+	dc.b    "            "      ; Modem info (8 bytes, unused) -> changed to 12
+	dc.b    "                                        " ; Notes (40 bytes)
+	dc.b    "JUE             "  ; Region (16 bytes — J=Japan, U=USA, E=Europe)
 
-BusError:
-AddressError:
-IllegalInstr:
-DivByZero:
-ChkInstr:
-TrapV:
-PrivViolation:
-Trace:
-Line1010:
-Line1111:
-ErrorHandler:
-    illegal                     ; Halt the CPU
+	; -------------------------------------------------------------------------
+	; Exception/error handlers
+	; For now these all just halt. In a real project you might display
+	; a crash screen or log register state.
+	; -------------------------------------------------------------------------
+
+busError:
+addressError:
+illegalInstr:
+divByZero:
+chkInstr:
+trapV:
+privViolation:
+trace:
+line1010:
+line1111:
+errorHandler:
+	illegal                     ; Halt the CPU
+vblankInterrupt:
+	move.b #1,vblank_flag
+	addq.w  #1,frame_count
+	rte

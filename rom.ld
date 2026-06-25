@@ -7,6 +7,9 @@
  *
  * The vector table and ROM header MUST start at $000000.
  * header.s is listed first in the Makefile SRCS so it links first.
+ *
+ * RAM (rwx) : ORIGIN = 0xFF0000, LENGTH = 0x010000
+ * RAM (rwx) : ORIGIN = 0xE00000, LENGTH = 0x100000
  */
 
 MEMORY
@@ -25,7 +28,7 @@ SECTIONS
     } > ROM
 
     /* RAM: uninitialised data */
-    .bss :
+    .bss (NOLOAD) :
     {
         *(.bss)
     } > RAM

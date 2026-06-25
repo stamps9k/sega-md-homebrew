@@ -41,7 +41,7 @@ build:
 
 # Link all objects into a single ELF
 $(TARGET).elf: $(BUILD_OBJS) | pkg
-	$(LD) $(LDFLAGS) -o pkg/$@ $^
+	$(LD) $(LDFLAGS) -o pkg/$@ $^ -Map=build/output.map
 
 # Ensure the pkg directory exists before assembling
 pkg:
@@ -52,6 +52,10 @@ $(TARGET).bin: $(TARGET).elf
 	$(OBJCOPY) -O binary pkg/$< pkg/$@
 	@echo ""
 	@echo "Built pkg/$(TARGET).bin ($$(wc -c < pkg/$(TARGET).bin | tr -d ' ') bytes)"
+
+# Dump build for debugging
+dis: $(TARGET).elf
+	m68k-elf-objdump -d pkg/$(TARGET).elf > build/dis.txt
 
 clean:
 	rm -f $(BUILD_OBJS) pkg/$(TARGET).elf pkg/$(TARGET).bin
