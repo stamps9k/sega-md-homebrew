@@ -2,15 +2,18 @@
 ; main.s — Hello World: initialise the VDP and set a background colour
 ;
 ; Initialisation order is as follows:
-;   1. Disable interrupts
-;   2. Initialise TMSS (stops the Mega Drive logo lockout chip)
-;   3. Take the Z80 bus and hold reset (prevents Z80 interfering with VDP)
-;   4. Initialise VDP registers
-;   5. Clear VRAM
-;   6. Enable display
-;   7. Re-enable the interrupts
-;		8. Init RAM variables & loop forever
+;		1. Disable interrupts
+;		2. Initialise TMSS (stops the Mega Drive logo lockout chip)
+;		3. Take the Z80 bus and hold reset (prevents Z80 interfering with VDP)
+;		4. Joypad port setup
+;		5. Initialise VDP registers
+;		6. Clear VRAM
+;		7. Enable display
+;		8. Re-enable the interrupts
+;		9. Init RAM variables & loop forever
 ; =============================================================================
+
+	section .text
 
 ; -----------------------------------------------------------------------------
 ; Hardware register addresses
@@ -23,21 +26,21 @@ TMSS_SEGA       equ $A14000     ; TMSS "SEGA" register
 TMSS_MODE       equ $A14100     ; TMSS mode register. Not currently in use but reserved.
 VERSION_REG     equ $A10001     ; Hardware version register
 
-	; Include state variables and initialisation routine
-	include "state.s"
-	include "color_cycle.s"
-
 ; CRAM write command (longword to control port)
 ; Sets VDP to write to CRAM starting at address 0
 CRAM_WRITE_CMD  equ $C0000000
 
-	xdef entryPoint
-	xdef cycleColors
-	xdef initState
-	xdef colorsTable
-	xdef color_state
-	xdef frame_count
-	xdef vblank_flag
+	xdef	entryPoint
+	xdef	VDP_DATA
+	xdef	VDP_CTRL
+	xdef	CRAM_WRITE_CMD
+
+	xref	IOCTRL1
+	xref	IODATA1
+	xref	updateScene
+	xref	initState
+	xref	readCtrl
+	xref	vblank_flag
 
 entryPoint:
 	; -------------------------------------------------------------------------
@@ -70,10 +73,17 @@ entryPoint:
 	bne     .waitZ80
 
 	; -------------------------------------------------------------------------
-	; 4. Initialise VDP registers
+	; 4. Initialise controllers
+	; Write $40 to the controller port and data addresses to initialise the controllers.
+	; -------------------------------------------------------------------------	
+.initController:
+	move.b	#$40,IOCTRL1
+	move.b	#$40,IODATA1
+
+	; -------------------------------------------------------------------------
+	; 5. Initialise VDP registers
 	; Write each register value from our table to the VDP control port.
 	; -------------------------------------------------------------------------
-	move.w  VDP_CTRL,d0
 	lea     vdpRegTable,a0
 	move.w  #(vdpRegTableEnd-vdpRegTable)/2-1,d0
 
@@ -82,7 +92,7 @@ entryPoint:
 	dbra    d0,.initVdp
 
 	; -------------------------------------------------------------------------
-	; 5. Clear VRAM
+	; 6. Clear VRAM
 	; Set VDP to auto-increment by 2, then write $0000 across all 64KB of VRAM.
 	; Without this, garbage tile data can corrupt the display even when the
 	; background colour is set correctly.
@@ -99,19 +109,19 @@ entryPoint:
 	dbra    d1,.clearVram
 
 	; -------------------------------------------------------------------------
-	; 6. Enable the display
+	; 7. Enable the display
 	; Set bit 6 of VDP register 1 to turn the display on.
 	; We set it last so nothing is visible during initialisation.
 	; -------------------------------------------------------------------------
 	move.w  #$8174,VDP_CTRL				; REG1: display on, V-int on, DMA on, Mode 5
 	
 	; -------------------------------------------------------------------------
-	; 7. Enable the VBlank Interrupt
+	; 8. Enable the VBlank Interrupt
 	; -------------------------------------------------------------------------
 	move.w #$2000,SR
 
 	; -------------------------------------------------------------------------
-	; 8. Init the RAM variables and enter the main loop
+	; 9. Init the RAM variables and enter the main loop
 	; -------------------------------------------------------------------------	
 	bsr initState
 	bra loop
@@ -121,14 +131,14 @@ entryPoint:
 ; -------------------------------------------------------------------------
 loop:
 .checkFlag:
-		tst.b vblank_flag
-		beq .done
-.renderEffect:
-		bsr cycleColors
+	tst.b vblank_flag
+	beq .done
+	bsr readCtrl
+	bsr updateScene
 .resetFlag:
-		move.b #0,vblank_flag
+	move.b #0,vblank_flag
 .done:
-    bra	loop
+	bra	loop
 
 ; -----------------------------------------------------------------------------
 ; VDP register table

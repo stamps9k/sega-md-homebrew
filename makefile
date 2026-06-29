@@ -11,7 +11,7 @@
 
 TARGET      = hello
 
-SRCS        = header.s main.s
+SRCS        = header.s main.s state.s joypad.s scene_manager.s color_cycle.s
 OBJS        = $(SRCS:.s=.o)
 BUILD_OBJS  = $(addprefix build/,$(OBJS))
 

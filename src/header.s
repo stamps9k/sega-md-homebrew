@@ -1,5 +1,3 @@
-	section .text
-
 ; =============================================================================
 ; header.s — Sega Megadrive ROM header and 68000 vector table
 ;
@@ -12,8 +10,11 @@
 ; Without this the hardware (and most emulators) will refuse to boot.
 ; =============================================================================
 
+	section .text
+
 	xref frame_count
 	xref vblank_flag
+	xref VDP_CTRL
 
 	; -------------------------------------------------------------------------
 	; 68000 Vector Table ($000000 - $0000FF)
@@ -105,7 +106,7 @@
 	dc.l    $00FF0000           ; RAM start address
 	dc.l    $00FFFFFF           ; RAM end address
 	dc.b    "            "      ; SRAM info (12 bytes, unused)
-	dc.b    "            "      ; Modem info (8 bytes, unused) -> changed to 12
+	dc.b    "            "      ; Modem info (12 bytes, unused)
 	dc.b    "                                        " ; Notes (40 bytes)
 	dc.b    "JUE             "  ; Region (16 bytes — J=Japan, U=USA, E=Europe)
 
@@ -128,6 +129,7 @@ line1111:
 errorHandler:
 	illegal                     ; Halt the CPU
 vblankInterrupt:
-	move.b #1,vblank_flag
-	addq.w  #1,frame_count
+	move.w	VDP_CTRL,d0			; acknowledge: clear VINT pending flag
+	move.b	#1,vblank_flag
+	addq.w	#1,frame_count
 	rte
