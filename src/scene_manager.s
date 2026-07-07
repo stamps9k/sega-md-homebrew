@@ -10,13 +10,22 @@
 
 	section .text
 
+	include macro.s
+
 	xref	cycleColorsInit
 	xref	cycleColorsUpdate
 	xref	cycleColorsRender
+	xref	waterfallInit
+	xref	waterfallUpdate
+	xref	waterfallRender
+
 	xref	active_effect
 	xref	current_joy_status
 	xref	previous_joy_status
 	
+	xref	clearVdpRam
+
+	xdef	initScene
 	xdef	updateScene
 
 ; -----------------------------------------------------------------------------
@@ -27,8 +36,16 @@
 ; scene updateScene dispatches to (index*12 = byte offset to that entry).
 ; -----------------------------------------------------------------------------
 sceneTable:
-	dc.l    cycleColorsInit, cycleColorsUpdate, cycleColorsRender
+	dc.l		cycleColorsInit,	cycleColorsUpdate,	cycleColorsRender
+	dc.l		waterfallInit,		waterfallUpdate,		waterfallRender
 
+initScene:
+	move.w	active_effect,d0
+	mulu	#12,d0
+	lea	sceneTable,a0								; Start of the scene table
+	move.l  (a0,d0.w),a1						; The init function for the effect
+	jsr (a1)
+	rts
 
 ; -----------------------------------------------------------------------------
 ; updateScene
@@ -37,11 +54,32 @@ sceneTable:
 ; scene can react to input without reading joypad state itself (d2/previous
 ; is loaded proactively for scenes that need just-pressed detection later;
 ; cycleColorsUpdate doesn't use it yet).
+;
+;	TODO: active_effect has no bounds check. Incrementing past the last scene
+; or decrementing below 0 will compute an out-of-range sceneTable offset and
+; jsr to garbage. Needs a clamp or wraparound (e.g. mod scene count) in
+; .sceneChangeInc/.sceneChangeDec before this ships beyond MVP.
 ; -----------------------------------------------------------------------------
 updateScene:
-	move.w	active_effect,d0
 	move.b	current_joy_status,d1
 	move.b	previous_joy_status,d2
+	justPressed d1,d2,d3
+	btst	#3,d3
+	bne	.sceneChangeInc
+	btst	#2,d3
+	bne	.sceneChangeDec
+	bra	.sceneHandling
+.sceneChangeInc:
+	jsr	clearVdpRam
+	addq.w	#1,active_effect
+	jsr initScene
+	bra	.sceneHandling
+.sceneChangeDec:
+	jsr	clearVdpRam
+	subq.w	#1,active_effect
+	jsr initScene
+.sceneHandling:
+	move.w	active_effect,d0
 	mulu	#12,d0
 	lea	sceneTable,a0								; Start of the scene table
 	move.l  4(a0,d0.w),a1						; The update function for the effect

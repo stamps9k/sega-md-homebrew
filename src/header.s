@@ -12,9 +12,10 @@
 
 	section .text
 
-	xref frame_count
-	xref vblank_flag
-	xref VDP_CTRL
+	xref	entryPoint
+	xref	frame_count
+	xref	vblank_flag
+	xref	VDP_CTRL
 
 	; -------------------------------------------------------------------------
 	; 68000 Vector Table ($000000 - $0000FF)
@@ -129,7 +130,7 @@ line1111:
 errorHandler:
 	illegal                     ; Halt the CPU
 vblankInterrupt:
-	move.w	VDP_CTRL,d0			; acknowledge: clear VINT pending flag
+	tst.w VDP_CTRL	; For now a simple acknowledgment is sufficient. No need to store the VDP_CTRL value
 	move.b	#1,vblank_flag
 	addq.w	#1,frame_count
 	rte
