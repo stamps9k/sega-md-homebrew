@@ -58,4 +58,4 @@ dis: $(TARGET).elf
 	m68k-elf-objdump -d pkg/$(TARGET).elf > build/dis.txt
 
 clean:
-	rm -f $(BUILD_OBJS) pkg/$(TARGET).elf pkg/$(TARGET).bin
+	rm -f $(BUILD_OBJS) build/dis.txt build/output.map pkg/$(TARGET).elf pkg/$(TARGET).bin
