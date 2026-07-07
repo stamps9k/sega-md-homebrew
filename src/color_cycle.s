@@ -24,15 +24,18 @@
 
 ; -----------------------------------------------------------------------------
 ; Color table ($0BGR format - nibble order is Blue, Green, Red)
+;
+;	Note that file is padded with 2 duplicates to make modulo math in color cycle
+;	easier.
 ; -----------------------------------------------------------------------------
 colorsTable: 
 	dc.w    $000E		; Red: B=0 ($E), G=0, R=7
 	dc.w    $00E0		; Green: B=0, G=7 ($E), R=0
 	dc.w    $0E00		; Blue: B=7 ($E), G=0, R=0
-	dc.w    $00EE		; Yellow: B=7 ($E), G=7 ($E), R=0
-	dc.w    $0EEE		; White: B=7 ($E), G=0, R=7 ($E)
-	dc.w    $0EE0		; Cyan: B=0, G=7 ($E), R=7 ($E)
-	dc.w    $000E		; Red: B=0 ($E), G=0, R=7
+	dc.w    $00EE		; Cyan: B=0, G=7 ($E), R=7 ($E)
+	dc.w    $0EEE		; White: B=7 ($E), G=7 ($E), R=7 ($E)
+	dc.w    $0EE0		; Yellow: B=7 ($E), G=7 ($E), R=0
+	dc.w    $000E		; Red: B=0, G=0, R=7 ($E)
 	dc.w    $00E0		; Green: B=0, G=7 ($E), R=0
 colorsTableEnd:
 
