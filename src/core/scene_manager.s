@@ -31,6 +31,8 @@
 	xdef	initScene
 	xdef	updateScene
 
+SCENE_COUNT	equ	3
+
 ; -----------------------------------------------------------------------------
 ; sceneTable
 ; One entry per registered scene, three consecutive longwords each:
@@ -84,12 +86,20 @@ updateScene:
 	bra	.sceneHandling
 .sceneChangeInc:
 	bsr	clearVdpRam
-	addq.w	#1,active_effect
-	bsr initScene
-	bra	.sceneHandling
+	move.w	active_effect,d0
+	addq.w	#1,d0
+	cmpi.w	#SCENE_COUNT,d0		; past last valid index?
+	blt.s	.storeChange
+	moveq	#0,d0			; wrap to first scene
+	bra	.storeChange
 .sceneChangeDec:
 	bsr	clearVdpRam
-	subq.w	#1,active_effect
+	move.w	active_effect,d0
+	subq.w	#1,d0
+	bpl.s	.storeChange		; still >= 0?
+	move.w	#SCENE_COUNT-1,d0	; wrap to last scene
+.storeChange:
+	move.w	d0,active_effect
 	bsr initScene
 .sceneHandling:
 	move.w	active_effect,d0
