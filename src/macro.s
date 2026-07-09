@@ -5,7 +5,7 @@
 ; so this is the home for small, frequently-repeated instruction sequences
 ; rather than full subroutines. Pulled in via include wherever needed.
 ;
-; Currently defines: justPressed
+; Currently defines: justPressed, vdpVramWrite
 ; =============================================================================
 
 ; -----------------------------------------------------------------------------
@@ -21,4 +21,18 @@ justPressed: macro
 	move.b	\1,\3          ; current
 	eor.b	\2,\3          ; XOR against previous
 	and.b	\1,\3          ; AND against current -> \3 = just-pressed byte
+	endm
+
+; -----------------------------------------------------------------------------
+; vdpVramWrite
+; Builds and writes a VRAM-write command word to VDP_CTRL for the given
+; VRAM address. Argument is parenthesised internally to guard against
+; vasm's non-C-like operator precedence when passed an expression
+; (e.g. base+offset) rather than a bare constant.
+;
+; Usage:
+;   vdpVramWrite someAddress+128
+; -----------------------------------------------------------------------------
+vdpVramWrite: macro
+	move.l	#($40000000|(((\1)&$3FFF)<<16)|(((\1)>>14)&3)),VDP_CTRL
 	endm

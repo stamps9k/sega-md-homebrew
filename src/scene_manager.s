@@ -18,6 +18,9 @@
 	xref	waterfallInit
 	xref	waterfallUpdate
 	xref	waterfallRender
+	xref	creditsInit
+	xref	creditsUpdate
+	xref	creditsRender
 
 	xref	active_effect
 	xref	current_joy_status
@@ -36,9 +39,19 @@
 ; scene updateScene dispatches to (index*12 = byte offset to that entry).
 ; -----------------------------------------------------------------------------
 sceneTable:
-	dc.l		cycleColorsInit,	cycleColorsUpdate,	cycleColorsRender
+	dc.l		creditsInit,			creditsUpdate,			creditsRender
 	dc.l		waterfallInit,		waterfallUpdate,		waterfallRender
+	dc.l		cycleColorsInit,	cycleColorsUpdate,	cycleColorsRender
 
+; -----------------------------------------------------------------------------
+; initScene
+; Calls the active scene's init routine (selected via active_effect) via
+; sceneTable.
+;
+; Input:  none
+; Output: none
+; Clobbers: d0, a0, a1
+; -----------------------------------------------------------------------------
 initScene:
 	move.w	active_effect,d0
 	mulu	#12,d0
@@ -70,14 +83,14 @@ updateScene:
 	bne	.sceneChangeDec
 	bra	.sceneHandling
 .sceneChangeInc:
-	jsr	clearVdpRam
+	bsr	clearVdpRam
 	addq.w	#1,active_effect
-	jsr initScene
+	bsr initScene
 	bra	.sceneHandling
 .sceneChangeDec:
-	jsr	clearVdpRam
+	bsr	clearVdpRam
 	subq.w	#1,active_effect
-	jsr initScene
+	bsr initScene
 .sceneHandling:
 	move.w	active_effect,d0
 	mulu	#12,d0

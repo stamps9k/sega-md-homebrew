@@ -19,8 +19,9 @@
 	xref	frame_count
 	xref	VDP_DATA
 	xref	VDP_CTRL
-	xref	current_joy_status
 	xref	CRAM_WRITE_CMD
+
+	section	.rodata
 
 ; -----------------------------------------------------------------------------
 ; Color table ($0BGR format - nibble order is Blue, Green, Red)
@@ -29,7 +30,7 @@
 ;	easier.
 ; -----------------------------------------------------------------------------
 colorsTable: 
-	dc.w    $000E		; Red: B=0 ($E), G=0, R=7
+	dc.w    $000E		; Red: B=0, G=0, R=7 ($E)
 	dc.w    $00E0		; Green: B=0, G=7 ($E), R=0
 	dc.w    $0E00		; Blue: B=7 ($E), G=0, R=0
 	dc.w    $00EE		; Cyan: B=0, G=7 ($E), R=7 ($E)
@@ -57,7 +58,7 @@ cycleColorsUpdate:
 	;	Reset color state if the start button is pressed
 	btst	#7,d1
 	beq	.noReset
-	jsr	cycleColorsInit
+	bsr	cycleColorsInit
 .noReset:
 	;	Process like normal if approximately a second has passed
 	move.w frame_count,d0

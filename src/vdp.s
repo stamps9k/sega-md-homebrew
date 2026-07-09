@@ -30,6 +30,7 @@
 	xdef	VDP_DATA
 	xdef	VDP_CTRL
 	xdef	CRAM_WRITE_CMD
+	xdef	VSRAM_WRITE_CMD
 
 	xdef	clearVdpRam
 	xdef	initVdp
@@ -40,6 +41,7 @@
 VDP_DATA        equ $C00000     ; VDP data port (word/longword access)
 VDP_CTRL        equ $C00004     ; VDP control port
 CRAM_WRITE_CMD  equ $C0000000		; CRAM write command (longword to control port). Sets VDP to write to CRAM starting at address 0
+VSRAM_WRITE_CMD equ $40000010		; VSRAM write command (longword to control port).
 
 ; -----------------------------------------------------------------------------
 ; initVdp
@@ -54,7 +56,7 @@ initVdp:
 .loop:
 	move.w  (a0)+,VDP_CTRL
 	dbra    d0,.loop
-.cleanUp:
+.done:
 	rts
 
 ; -----------------------------------------------------------------------------
@@ -66,6 +68,17 @@ initVdp:
 ; that runs after it (an effect's init/update/render) has no display-off
 ; safety net and must complete its own VDP writes within a single VBlank
 ; (see file header).
+;
+; NOTE: CRAM is deliberately NOT cleared here. A full CRAM wipe would mean
+; every scene's init also has to rewrite every colour it needs from
+; scratch, for a resource that's tiny (64 words total) and cheap to just
+; overwrite directly. Each scene is responsible for explicitly setting
+; the CRAM entries it displays (see e.g. creditsInit's palette writes).
+; The failure mode of skipping this is a wrong/stale colour inherited
+; from the previous scene -- a visible but harmless colour bug, not
+; corruption -- so it's traded off deliberately rather than an oversight.
+; If a future scene ever reads a CRAM slot without first writing it
+; itself, that's the bug to watch for.
 ; -----------------------------------------------------------------------------
 clearVdpRam:
 .disableDis:
@@ -85,7 +98,7 @@ clearVdpRam:
 	move.w  #$0000,VDP_DATA       ; plane A vscroll = 0 (address auto-increments to $0002)
 	move.w  #$0000,VDP_DATA       ; plane B vscroll = 0
 
-.cleanUp:
+.done:
 	move.w  #$8174,VDP_CTRL				; REG1: display on, V-int on, DMA on, Mode 5
 	rts
 
