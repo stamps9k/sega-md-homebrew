@@ -12,7 +12,7 @@
 
 	section .text
 
-	include	macro.s
+	include	../include/macro.s
 
 	xref	fontData
 	xref	FONT_FIRST_CHAR

@@ -12,7 +12,7 @@
 
 	section .text
 
-	include macro.s
+	include ../include/macro.s
 
 NAMETABLE_A_BASE	EQU	$C000
 

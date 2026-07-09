@@ -22,7 +22,6 @@
 	xdef	waterfallUpdate
 	xdef	waterfallRender
 	
-
 ; ------------------------------------------------------------
 ; waterfallTile
 ;

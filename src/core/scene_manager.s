@@ -10,7 +10,7 @@
 
 	section .text
 
-	include macro.s
+	include ../include/macro.s
 
 	xref	cycleColorsInit
 	xref	cycleColorsUpdate

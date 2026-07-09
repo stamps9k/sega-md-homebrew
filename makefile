@@ -11,9 +11,8 @@
 
 TARGET      = hello
 
-SRCS        = header.s main.s vdp.s state.s joypad.s scene_manager.s color_cycle.s waterfall.s credits.s dhepper.s text.s
-OBJS        = $(SRCS:.s=.o)
-BUILD_OBJS  = $(addprefix build/,$(OBJS))
+SRCS := $(wildcard src/*.s src/assets/*.s src/core/*.s src/scenes/*.s src/lib/*.s)
+BUILD_OBJS := $(patsubst src/%.s,build/%.o,$(SRCS))
 
 AS          = vasmm68k_mot
 LD          = m68k-elf-ld
@@ -31,13 +30,9 @@ LDFLAGS     = -T rom.ld
 
 all: $(TARGET).bin
 
-# Assemble each source file to an ELF object
-build/%.o: src/%.s | build
+build/%.o: src/%.s
+	@mkdir -p $(@D)
 	$(AS) $(ASFLAGS) -o $@ $<
-
-# Ensure the build directory exists before assembling
-build:
-	mkdir -p build
 
 # Link all objects into a single ELF
 $(TARGET).elf: $(BUILD_OBJS) | pkg
@@ -58,4 +53,4 @@ dis: $(TARGET).elf
 	m68k-elf-objdump -d pkg/$(TARGET).elf > build/dis.txt
 
 clean:
-	rm -f $(BUILD_OBJS) build/dis.txt build/output.map pkg/$(TARGET).elf pkg/$(TARGET).bin
+	test -f rom.ld && rm -rf ./build/* ./pkg/*
