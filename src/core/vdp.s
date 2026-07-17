@@ -30,6 +30,7 @@
 	xdef	VDP_DATA
 	xdef	VDP_CTRL
 	xdef	CRAM_WRITE_CMD
+	xdef	CRAM_WRITE_CMD_PAL1
 	xdef	VSRAM_WRITE_CMD
 
 	xdef	clearVdpRam
@@ -41,6 +42,7 @@
 VDP_DATA        equ $C00000     ; VDP data port (word/longword access)
 VDP_CTRL        equ $C00004     ; VDP control port
 CRAM_WRITE_CMD  equ $C0000000		; CRAM write command (longword to control port). Sets VDP to write to CRAM starting at address 0
+CRAM_WRITE_CMD_PAL1  equ $C0200000   ; CRAM write command, starting at palette line 1, color 0
 VSRAM_WRITE_CMD equ $40000010		; VSRAM write command (longword to control port).
 
 ; -----------------------------------------------------------------------------
@@ -118,7 +120,7 @@ vdpRegTable:
 	dc.w    $8700   ; REG  7: background = palette 0, colour 0
 	dc.w    $8800   ; REG  8: unused (H scroll)
 	dc.w    $8900   ; REG  9: unused
-	dc.w    $8A00   ; REG 10: H-interrupt counter (disabled)
+	dc.w    $8A01   ; REG 10: H-interrupt reload = 1 -> fires every other scanline
 	dc.w    $8B00   ; REG 11: mode 3 — full scroll, no ext int
 	dc.w    $8C81   ; REG 12: mode 4 — H40 (320px wide), no interlace
 	dc.w    $8D2F   ; REG 13: H-scroll table     -> VRAM $BC00

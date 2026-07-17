@@ -15,6 +15,9 @@
 	xref	cycleColorsInit
 	xref	cycleColorsUpdate
 	xref	cycleColorsRender
+	xref	outrunInit
+	xref	outrunUpdate
+	xref	outrunRender
 	xref	waterfallInit
 	xref	waterfallUpdate
 	xref	waterfallRender
@@ -28,10 +31,12 @@
 	
 	xref	clearVdpRam
 
+	xref	hblankDisable
+
 	xdef	initScene
 	xdef	updateScene
 
-SCENE_COUNT	equ	3
+SCENE_COUNT	equ	4
 
 ; -----------------------------------------------------------------------------
 ; sceneTable
@@ -42,6 +47,7 @@ SCENE_COUNT	equ	3
 ; -----------------------------------------------------------------------------
 sceneTable:
 	dc.l		creditsInit,			creditsUpdate,			creditsRender
+	dc.l		outrunInit,				outrunUpdate,				outrunRender
 	dc.l		waterfallInit,		waterfallUpdate,		waterfallRender
 	dc.l		cycleColorsInit,	cycleColorsUpdate,	cycleColorsRender
 
@@ -85,7 +91,7 @@ updateScene:
 	bne	.sceneChangeDec
 	bra	.sceneHandling
 .sceneChangeInc:
-	bsr	clearVdpRam
+	bsr	cleanUp
 	move.w	active_effect,d0
 	addq.w	#1,d0
 	cmpi.w	#SCENE_COUNT,d0		; past last valid index?
@@ -93,7 +99,7 @@ updateScene:
 	moveq	#0,d0			; wrap to first scene
 	bra	.storeChange
 .sceneChangeDec:
-	bsr	clearVdpRam
+	bsr	cleanUp
 	move.w	active_effect,d0
 	subq.w	#1,d0
 	bpl.s	.storeChange		; still >= 0?
@@ -110,3 +116,19 @@ updateScene:
 	jsr (a1)
 	jsr (a2)
 	rts
+
+;	------------------------------------------------------------------------------
+;
+;	Sets all values to sane defaults before the nxt 
+;
+;	------------------------------------------------------------------------------
+cleanUp:
+.cramCleanup:
+	move.w  #$8F02,VDP_CTRL        ; reg 15 = 2, resume normal increment
+.hblankCleanup:
+	bsr     hblankDisable				; Set the hblank handler to nothing
+.vramCleanup:
+	bsr	clearVdpRam
+.done:
+	rts
+

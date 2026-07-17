@@ -22,7 +22,7 @@
 
 ; State variables stored in RAM for the demo.
 vblank_flag:	ds.b	1	; vblank triggered flag
-hblank_flag:	ds.b	1	; hblank flag. Unused but reserved for later effects
+hblank_count:	ds.b	1	; hblank count
 previous_joy_status:	ds.b	1	; previous joypad status
 current_joy_status:	ds.b	1	; current joypad status
 scroll_y:	ds.w	1 ; current hardware scroll_y amount
@@ -46,7 +46,7 @@ waterfall_state:	ds.w	1 ; current palette offset
 initState:
 .blankFlags:
 	move.b	#0,vblank_flag
-	move.b	#0,hblank_flag
+	move.b	#0,hblank_count
 .joystickData:
 	move.b	#0,previous_joy_status
 	move.b	#0,current_joy_status	

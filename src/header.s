@@ -13,6 +13,7 @@
 	section .text
 
 	xref	entryPoint
+	xref	hblankInterrupt
 	xref	frame_count
 	xref	vblank_flag
 	xref	VDP_CTRL
@@ -53,7 +54,7 @@
 	dc.l    errorHandler        ; Level 1 interrupt
 	dc.l    errorHandler        ; Level 2 interrupt
 	dc.l    errorHandler        ; Level 3 interrupt 
-	dc.l    errorHandler        ; Level 4 interrupt (H-blank)
+	dc.l    hblankInterrupt     ; Level 4 interrupt (H-blank)
 	dc.l    errorHandler        ; Level 5 interrupt
 	dc.l    vblankInterrupt     ; Level 6 interrupt (V-blank)
 	dc.l    errorHandler        ; Level 7 interrupt
@@ -131,6 +132,7 @@ errorHandler:
 	illegal                     ; Halt the CPU
 vblankInterrupt:
 	tst.w VDP_CTRL	; For now a simple acknowledgment is sufficient. No need to store the VDP_CTRL value
+	clr.w   hblank_line
 	move.b	#1,vblank_flag
 	addq.w	#1,frame_count
 	rte
