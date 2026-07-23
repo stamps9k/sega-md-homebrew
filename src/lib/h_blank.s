@@ -1,4 +1,4 @@
-;===============================================================================
+; ==============================================================================
 ; hblank.s
 ;
 ; Generic H-Blank interrupt dispatch layer.
@@ -15,18 +15,21 @@
 ; configuration), this dispatcher's behaviour is entirely
 ; determined by whichever handler the active scene installs.
 ; Scenes that don't use H-Blank effects never touch this file.
-;===============================================================================
+; ==============================================================================
 
-	xdef	hblankSetHandler
-	xdef	hblankInterrupt
+	; ----------------------------------------------------------------------------
+	; External definitions
+	; ----------------------------------------------------------------------------
+	xdef	hblank_line							; current raster line, read-only for scenes
 	xdef	hblankInit
 	xdef	hblankDisable
-
-	xdef	hblank_line		; current raster line, read-only for scenes
+	xdef	hblankSetHandler
+	xdef	hblankInterrupt
 
 	section .bss
 
-hblank_line:	ds.w    1
+hblank_line:	
+	ds.w		1
 
 ; ------------------------------------------------------------------------------
 ; hblank_handler
@@ -35,7 +38,7 @@ hblank_line:	ds.w    1
 ;	registered one.
 ; ------------------------------------------------------------------------------
 hblank_handler:
-	ds.l    1
+	ds.l		1
 
 	section .text
 
@@ -52,8 +55,8 @@ hblank_handler:
 ;	registration remain separate concerns.
 ; ------------------------------------------------------------------------------
 hblankInit:
-	clr.w   hblank_line
-	move.w  #$8014,VDP_CTRL		; REG0: mode 1 — IE1 (H-int) enabled
+	clr.w		hblank_line
+	move.w	#$8014,VDP_CTRL				; REG0: mode 1 — IE1 (H-int) enabled
 	rts
 
 ; ------------------------------------------------------------------------------
@@ -64,12 +67,12 @@ hblankInit:
 ;	inherit a stray handler or an unwanted active interrupt.
 ; ------------------------------------------------------------------------------
 hblankDisable:
-	move.w  #$8004,VDP_CTRL		; REG0: mode 1 — IE1 (H-int) disabled
-	moveq   #0,d0
-	move.l  d0,hblank_handler
+	move.w	#$8004,VDP_CTRL				; REG0: mode 1 — IE1 (H-int) disabled
+	moveq		#0,d0
+	move.l	d0,hblank_handler
 	rts
 
-; -------------------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; hblankSetHandler
 ;	Registers the scene-supplied per-scanline routine to
 ;	be called from hblankInterrupt. Pass the handler
@@ -80,7 +83,7 @@ hblankDisable:
 ;	pointer.
 ; ------------------------------------------------------------------------------
 hblankSetHandler:
-	move.l  a0,hblank_handler
+	move.l	a0,hblank_handler
 	rts
 
 ; ------------------------------------------------------------------------------
@@ -119,18 +122,18 @@ hblankSetHandler:
 ;	given scene's handler uses.
 ; ------------------------------------------------------------------------------
 hblankInterrupt:
-	movem.l d0-d1/a0,-(sp)
+	movem.l	d0-d1/a0,-(sp)
+	tst.w		VDP_CTRL							; ack VDP interrupt-pending flag
+	addq.w	#1,hblank_line
+	move.l	hblank_handler,d0
+	beq.s		.noHandler
 
-	tst.w   VDP_CTRL            ; ack VDP interrupt-pending flag
-	addq.w  #1,hblank_line
-
-	move.l  hblank_handler,d0
-	beq.s   .noHandler
-
-	movea.l d0,a0
-	jsr     (a0)
+.handler:
+	movea.l	d0,a0
+	jsr			(a0)
 
 .noHandler:
-	movem.l (sp)+,d0-d1/a0
+	movem.l	(sp)+,d0-d1/a0
 
+.done:
 	rte
