@@ -1,4 +1,4 @@
-;-------------------------------------------------------------------
+; ==============================================================================
 ; credits.s
 ;
 ; Scene: scrolling credits.
@@ -8,155 +8,38 @@
 ; VDP scroll register / VSRAM). Uses text.s to lay out the initial
 ; text into the plane during init. Registered with the scene
 ; manager via sceneTable (init/update/render).
-;-------------------------------------------------------------------
-
-	section .text
+; ==============================================================================
 
 	include ../include/macro.s
 
-NAMETABLE_A_BASE	EQU	$C000
-
+	; ----------------------------------------------------------------------------
+	; External definitions
+	; ----------------------------------------------------------------------------
 	xdef	creditsInit
 	xdef	creditsUpdate
 	xdef	creditsRender
 
-	xref	initFont
-	xref	writeStringToNametable
-	xref	CRAM_WRITE_CMD
-	xref	VSRAM_WRITE_CMD
-	xref	VDP_CTRL
-	xref	VDP_DATA
-
+	; ----------------------------------------------------------------------------
+	; External references
+	; ----------------------------------------------------------------------------
+	; from state.s
 	xref	scroll_y
 
-;---------------------------------------------------------------
-; creditsInit
-;
-; Scene init for the scrolling credits screen. Loads font glyphs
-; into VRAM, sets the foreground/background colors in CRAM, and
-; writes each line of credits text into the nametable at its
-; starting position. Assumes clean VRAM/CRAM state on entry, per
-; the scene invariant.
-;
-; Input:  none
-; Output: none
-; Clobbers: d0, a0
-;---------------------------------------------------------------
-creditsInit:
-	bsr	initFont
+	; from text.s
+	xref	initFont
+	xref	writeStringToNametable
 
-	move.l	#CRAM_WRITE_CMD,VDP_CTRL   	; set to write to CRAM (Palette 0 index 0)
-	move.w	#$0000,VDP_DATA          		; black (transparency)
-	move.w	#$0E0E,VDP_DATA          		; cyan
+	; from vdp.s
+	xref	CRAM_WRITE_CMD
+	xref	VDP_CTRL
+	xref	VDP_DATA
+	xref	VSRAM_WRITE_CMD
 
-	vdpVramWrite NAMETABLE_A_BASE+6				; Magic value (6) calculated to put word
-																				; on center of line 0
-	lea	creditsLine0,a0										; 68K ASM LEARNING PROJECT - NO SGDK
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+136			; Magic value (136) calculated to put word
-																				; on center of line 1
-	lea	creditsLine1,a0										; ================================
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+276			; Magic value (276) calculated to put word
-																				; on center of line 2
-	lea	creditsLine2,a0										; CODE ... STAMPATRON
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+406			; Magic value (406) calculated to put word
-																				; on center of line 3
-	lea	creditsLine3,a0										; GFX ... STAMPATRON
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+524			; Magic value (524) calculated to put word
-																				; on center of line 4
-	lea	creditsLine4,a0										; MUSIC .... N/A (SILENT DEMO)
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+802			; Magic value (802) calculated to put word
-																				; on center of line 6
-	lea	creditsLine6,a0										;	TOOLS
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+912			; Magic value (912) calculated to put word
-																				; on center of line 7
-	lea	creditsLine7,a0										; VASM + M68K-ELF BINUTILS
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+1038		; Magic value (1038) calculated to put word
-																				; on center of line 8
-	lea	creditsLine8,a0										; BLASTEM + GENESIS PLUS GX
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+1314		; Magic value (1314) calculated to put word
-																				; on center of line 10
-	lea	creditsLine10,a0									; THANKS
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+1414		; Magic value (1414) calculated to put word
-																				; on center of line 11
-	lea	creditsLine11,a0									; DHEPPER - FONT8X8 (PUBLIC DOMAIN)
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+1548		; Magic value (1548) calculated to put word
-																				; on center of line 12
-	lea	creditsLine12,a0									; CHARLES MACDONALD - VDP DOCS
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+1674		; Magic value (1674) calculated to put word
-																				; on center of line 13
-	lea	creditsLine13,a0									; THE SPRITESMIND.NET COMMUNITY
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+1942		; Magic value (1942) calculated to put word
-																				; on center of line 15
-	lea	creditsLine15,a0									; THANKS FOR WATCHING
-	bsr	writeStringToNametable
-
-	vdpVramWrite NAMETABLE_A_BASE+2194		; Magic value (2194) calculated to put word
-																				; on center of line 17
-	lea	creditsLine17,a0									; SEE YOU NEXT MILESTONE
-	bsr	writeStringToNametable
-.done:
-	rts
-
-;---------------------------------------------------------------
-; creditsUpdate
-;
-; Per-frame scene update. Advances the vertical scroll offset and
-; writes it to VSRAM, producing the scrolling credits effect.
-; Called once per frame after VBlank.
-;
-; Input:  none
-; Output: none
-; Clobbers: none (scroll_y is read/written directly)
-;---------------------------------------------------------------
-creditsUpdate:
-	move.l  #VSRAM_WRITE_CMD,VDP_CTRL   ; point VDP at VSRAM
-	move.w  scroll_y,VDP_DATA     			; write current scroll offset
-	addq.w	#1,scroll_y									; increment scroll offset
-.done:
-	rts
-
-;---------------------------------------------------------------
-; creditsRender
-;
-; Per-frame scene render step. Currently a no-op: all visible
-; output for this scene is driven by the VSRAM scroll write in
-; creditsUpdate, with no additional per-frame drawing needed.
-;
-; Input:  none
-; Output: none
-; Clobbers: none
-;---------------------------------------------------------------
-creditsRender:
-.done:
-	rts
+	NAMETABLE_A_BASE	EQU		$C000
 
 	section .rodata
 
-;-------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; creditsLines
 ;
 ; Text content for the scrolling credits, one label per line of
@@ -171,7 +54,7 @@ creditsRender:
 ; writeStringToNametable, and padded to an even address afterward
 ; (`even`) since odd-length string data would otherwise shift
 ; subsequent labels onto an odd address.
-;-------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 creditsLine0:
 	dc.b	"68K ASM LEARNING PROJECT - NO SGDK",0
 	even
@@ -214,3 +97,145 @@ creditsLine15:
 creditsLine17:
 	dc.b	"SEE YOU NEXT MILESTONE",0
 	even
+
+	section .text
+
+; ------------------------------------------------------------------------------
+; creditsInit
+;
+; Scene init for the scrolling credits screen. Loads font glyphs
+; into VRAM, sets the foreground/background colors in CRAM, and
+; writes each line of credits text into the nametable at its
+; starting position. Assumes clean VRAM/CRAM state on entry, per
+; the scene invariant.
+;
+; Input:  none
+; Output: none
+; Clobbers: d0, a0
+; ------------------------------------------------------------------------------
+creditsInit:
+	jsr			initFont
+
+.writeLines:
+	move.l	#CRAM_WRITE_CMD,VDP_CTRL   	; set to write to CRAM (Palette 0 index 0)
+	move.w	#$0000,VDP_DATA          		; black (transparency)
+	move.w	#$0E0E,VDP_DATA          		; cyan
+
+.line01:
+	vdpVramWrite	NAMETABLE_A_BASE+6			; Magic value (6) calculated to put word
+																			; on center of line 0
+	lea	creditsLine0,a0									; 68K ASM LEARNING PROJECT - NO SGDK
+	jsr	writeStringToNametable
+
+.line02:
+	vdpVramWrite	NAMETABLE_A_BASE+136		; Magic value (136) calculated to put word
+																			; on center of line 1
+	lea	creditsLine1,a0									; ================================
+	jsr	writeStringToNametable
+
+.line03:
+	vdpVramWrite	NAMETABLE_A_BASE+276		; Magic value (276) calculated to put word
+																			; on center of line 2
+	lea	creditsLine2,a0									; CODE ... STAMPATRON
+	jsr	writeStringToNametable
+
+.line04:
+	vdpVramWrite	NAMETABLE_A_BASE+406		; Magic value (406) calculated to put word
+																			; on center of line 3
+	lea	creditsLine3,a0									; GFX ... STAMPATRON
+	jsr	writeStringToNametable
+
+.line05:
+	vdpVramWrite	NAMETABLE_A_BASE+524		; Magic value (524) calculated to put word
+																			; on center of line 4
+	lea	creditsLine4,a0									; MUSIC .... N/A (SILENT DEMO)
+	jsr	writeStringToNametable
+
+.line06:
+	vdpVramWrite	NAMETABLE_A_BASE+802		; Magic value (802) calculated to put word
+																			; on center of line 6
+	lea	creditsLine6,a0									;	TOOLS
+	jsr	writeStringToNametable
+
+.line07:
+	vdpVramWrite	NAMETABLE_A_BASE+912		; Magic value (912) calculated to put word
+																			; on center of line 7
+	lea	creditsLine7,a0									; VASM + M68K-ELF BINUTILS
+	jsr	writeStringToNametable
+
+.line08:
+	vdpVramWrite	NAMETABLE_A_BASE+1038	; Magic value (1038) calculated to put word
+																			; on center of line 8
+	lea	creditsLine8,a0									; BLASTEM + GENESIS PLUS GX
+	jsr	writeStringToNametable
+
+.line09:
+	vdpVramWrite	NAMETABLE_A_BASE+1314	; Magic value (1314) calculated to put word
+																			; on center of line 10
+	lea	creditsLine10,a0								; THANKS
+	jsr	writeStringToNametable
+
+.line10:
+	vdpVramWrite	NAMETABLE_A_BASE+1414	; Magic value (1414) calculated to put word
+																			; on center of line 11
+	lea	creditsLine11,a0								; DHEPPER - FONT8X8 (PUBLIC DOMAIN)
+	jsr	writeStringToNametable
+
+.line11:
+	vdpVramWrite	NAMETABLE_A_BASE+1548	; Magic value (1548) calculated to put word
+																			; on center of line 12
+	lea	creditsLine12,a0								; CHARLES MACDONALD - VDP DOCS
+	jsr	writeStringToNametable
+
+.line12:
+	vdpVramWrite	NAMETABLE_A_BASE+1674	; Magic value (1674) calculated to put word
+																			; on center of line 13
+	lea	creditsLine13,a0								; THE SPRITESMIND.NET COMMUNITY
+	jsr	writeStringToNametable
+
+.line13:
+	vdpVramWrite	NAMETABLE_A_BASE+1942	; Magic value (1942) calculated to put word
+																			; on center of line 15
+	lea	creditsLine15,a0								; THANKS FOR WATCHING
+	jsr	writeStringToNametable
+
+.line14:
+	vdpVramWrite	NAMETABLE_A_BASE+2194	; Magic value (2194) calculated to put word
+																			; on center of line 17
+	lea	creditsLine17,a0								; SEE YOU NEXT MILESTONE
+	jsr	writeStringToNametable
+.done:
+	rts
+
+; ------------------------------------------------------------------------------
+; creditsUpdate
+;
+; Per-frame scene update. Advances the vertical scroll offset and
+; writes it to VSRAM, producing the scrolling credits effect.
+; Called once per frame after VBlank.
+;
+; Input:  none
+; Output: none
+; Clobbers: none (scroll_y is read/written directly)
+; ------------------------------------------------------------------------------
+creditsUpdate:
+	move.l	#VSRAM_WRITE_CMD,VDP_CTRL		; point VDP at VSRAM
+	move.w	scroll_y,VDP_DATA						; write current scroll offset
+	addq.w	#1,scroll_y									; increment scroll offset
+.done:
+	rts
+
+; ------------------------------------------------------------------------------
+; creditsRender
+;
+; Per-frame scene render step. Currently a no-op: all visible
+; output for this scene is driven by the VSRAM scroll write in
+; creditsUpdate, with no additional per-frame drawing needed.
+;
+; Input:  none
+; Output: none
+; Clobbers: none
+; ------------------------------------------------------------------------------
+creditsRender:
+.done:
+	rts
