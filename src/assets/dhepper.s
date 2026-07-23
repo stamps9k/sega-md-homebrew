@@ -1,4 +1,4 @@
-;-------------------------------------------------------------------
+;===============================================================================
 ; dhepper.s
 ;
 ; 8x8 font tile data (4bpp Mega Drive tile format), printable ASCII
@@ -11,19 +11,24 @@
 ; Each glyph is 8 rows x 4 bytes (1 long per row, 4bpp). "On" pixels
 ; use palette index 1; "off" pixels use index 0 (transparent,
 ; per VDP hardware rule).
-;-------------------------------------------------------------------
+;===============================================================================
 
-	section .rodata
-
-	xdef	fontData
-	xdef	fontDataEnd
-	xdef	FONT_DATA_SIZE
-	xdef	FONT_DATA_LOOP_COUNT
+	; ----------------------------------------
+	; External definitions
+	; ----------------------------------------
 	xdef	FONT_FIRST_CHAR
 	xdef	FONT_NUM_CHARS
+	xdef	FONT_DATA_SIZE
+	xdef	FONT_DATA_LOOP_COUNT
+	xdef	fontData
+	xdef	fontDataEnd
 
-FONT_FIRST_CHAR	EQU	$20	; first glyph = space
-FONT_NUM_CHARS	EQU	95	; space (0x20) through ~ (0x7E)
+FONT_FIRST_CHAR				EQU	$20											; first glyph = space
+FONT_NUM_CHARS				EQU	95											; space (0x20) through ~ (0x7E)
+FONT_DATA_SIZE				EQU	fontDataEnd-fontData
+FONT_DATA_LOOP_COUNT	EQU	(FONT_DATA_SIZE/2)-1
+
+	section .rodata
 
 fontData:
 	; U+0020 ( ) - space
@@ -976,6 +981,3 @@ fontData:
 	dc.l	$00000000
 	dc.l	$00000000
 fontDataEnd:
-
-FONT_DATA_SIZE	EQU	fontDataEnd-fontData
-FONT_DATA_LOOP_COUNT EQU  (FONT_DATA_SIZE/2)-1
