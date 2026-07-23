@@ -9,8 +9,6 @@ the same commit — don't let it drift out of sync with the code.
 
 ## 1. File Structure
 
-- Every `.s` file must open with an explicit `section .text` or `section .bss`
-  directive. Never rely on an implicit/default section.
 - Project layout:
   ```
   src/
@@ -27,6 +25,22 @@ the same commit — don't let it drift out of sync with the code.
   routine for deeper visual grouping when local labels alone aren't enough — this
   tier is a comment convention only; the assembler has no nested local-label scoping
   to lean on instead.
+- **Section directives.** No file is required to open with a section directive as
+  its very first line. `EQU`, `xref`, and `xdef` are section-agnostic — none of
+  them emit bytes into whatever section happens to be current, so they may appear
+  above any section directive, ungrouped by section. The first section directive
+  in a file appears immediately before the first line that actually needs a
+  section context (the first real code or data).
+- **Section ordering within a file.** When a file uses more than one section,
+  order them `.rodata`, then `.bss`, then `.text` — constant/initialized data,
+  then uninitialized reserved space, then code.
+- **Labelled block ordering within a section.** Group labelled blocks
+  (routines, tables, reserved variables) by lifecycle stage — init-time, then
+  per-frame, then interrupt-time (ISR) content — in that order, regardless of
+  which section they live in. Within a single lifecycle stage, order top-down
+  by call order: the entry point/caller for that stage first, then the helpers
+  it calls, in call sequence. A routine or table belongs physically in its own
+  lifecycle stage's group even if it's called or read from a different stage.
 
 ## 2. Symbols and Linkage
 
@@ -41,6 +55,16 @@ the same commit — don't let it drift out of sync with the code.
   Compute the value fully in the file that defines it and export only the
   finished result — never export raw operands expecting the consumer to finish
   the math.
+- **Placement.** `xref` and `xdef` declarations live in a dedicated header block
+  at the top of the file, under a `----` separator — above any section
+  directive, since both are section-agnostic. The `xref` block comes before the
+  `xdef` block.
+- **`xref` ordering.** Grouped by source file, with a one-line `; from X.s`
+  comment above each group. Groups are ordered alphabetically by filename;
+  symbols within each group are also alphabetical.
+- **`xdef` ordering.** A single flat list, ordered by order of
+  appearance/definition later in the file — it doubles as a mini table of
+  contents for the file's exports.
 
 ## 3. Calls: `bsr` vs `jsr`
 
@@ -111,6 +135,17 @@ FOO EQU 32*256
 
 Alternative: invoke vasm with `-spaces` if whitespace is unavoidable. Default to
 writing expressions with no internal whitespace rather than relying on the flag.
+
+### EQU ordering
+
+Group `EQU`s by logical purpose (e.g. all color-cycling constants together, all
+road-geometry constants together), each cluster set off with a short comment.
+Within a cluster:
+
+1. **Dependency order first** — a base constant before any `EQU` computed from
+   it (e.g. `COLOR_THRESHOLD` before `PHASE_WRAP`).
+2. **Order of first use** for constants with no dependency relationship —
+   ordered by where they're first referenced later in the file.
 
 ## 7. Tables and Data
 
