@@ -35,7 +35,7 @@
 	xref	VDP_DATA
 	xref	VSRAM_WRITE_CMD
 
-	NAMETABLE_A_BASE	EQU		$C000
+NAMETABLE_A_BASE	EQU		$C000
 
 	section .rodata
 
