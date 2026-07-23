@@ -1,36 +1,51 @@
-; =============================================================================
+; ==============================================================================
 ; state.s — Shared RAM state for the main loop and scene manager
 ;
 ; Home for any variable that may need to be read or written by more than
 ; one part of the program (e.g. shared between scenes, or between a scene
 ; and the main loop/ISR). Scene-specific state that only one scene touches
 ; should stay local to that scene's own file instead.
-; =============================================================================
+; ==============================================================================
 
-	section .bss
-
-	xdef	initState
+	; ------------------------------------------------------------------------------
+	; External definitions
+	; ------------------------------------------------------------------------------
 	xdef	vblank_flag
-	xdef	frame_count 
 	xdef	previous_joy_status
 	xdef	current_joy_status
 	xdef	scroll_y
 	xdef	scroll_x
+	xdef	frame_count
 	xdef	active_effect
 	xdef	color_state
 	xdef	waterfall_state
+	xdef	initState
 
-; State variables stored in RAM for the demo.
-vblank_flag:	ds.b	1	; vblank triggered flag
-hblank_count:	ds.b	1	; hblank count
-previous_joy_status:	ds.b	1	; previous joypad status
-current_joy_status:	ds.b	1	; current joypad status
-scroll_y:	ds.w	1 ; current hardware scroll_y amount
-scroll_x:	ds.w	1 ; current hardware scroll_x amount
-frame_count:	ds.w	1	; current frame count
-active_effect:	ds.w	1	; index of the currently active scene
-color_state:	ds.w	1	; current color index (0-7)
-waterfall_state:	ds.w	1 ; current palette offset
+	section .bss
+
+; -------------------------------------------------------------------------------
+; Global state variables stored in RAM for the demo.
+; -------------------------------------------------------------------------------
+vblank_flag:
+	ds.b		1											; vblank triggered flag
+hblank_count:
+	ds.b		1											; hblank count
+previous_joy_status:
+	ds.b		1											; previous joypad status
+current_joy_status:
+	ds.b		1											; current joypad status
+scroll_y:
+	ds.w		1											; current hardware scroll_y amount
+scroll_x:
+	ds.w		1											; current hardware scroll_x amount
+frame_count:
+	ds.w		1											; current frame count
+active_effect:
+	ds.w		1											; index of the currently active scene
+color_state:
+	ds.w		1											; current color index (0-7)
+waterfall_state:
+	ds.w		1											; current palette offset
 
 	section .text
 
