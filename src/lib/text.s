@@ -1,4 +1,4 @@
-;-------------------------------------------------------------------
+; ==============================================================================
 ; text.s
 ;
 ; Generic text rendering support.
@@ -8,26 +8,35 @@
 ; no knowledge of scrolling, timing, or content — purely a shared
 ; primitive for putting characters on screen. Consumed by scene
 ; files that need to display text (e.g. credits.s).
-;-------------------------------------------------------------------
-
-	section .text
+; ==============================================================================
 
 	include	../include/macro.s
 
-	xref	fontData
-	xref	FONT_FIRST_CHAR
-	xref	FONT_DATA_LOOP_COUNT
-	xref	VDP_CTRL
-	xref	VDP_DATA
-
+	; ----------------------------------------------------------------------------
+	; External definitions
+	; ----------------------------------------------------------------------------
 	xdef	initFont
 	xdef	writeStringToNametable
 
-FONT_BASE_TILE  EQU  1      ; VRAM tile index where glyphs are loaded.
+	; ----------------------------------------------------------------------------
+	; External references
+	; ----------------------------------------------------------------------------
+	; from dhepper.s
+	xref	fontData
+	xref	FONT_DATA_LOOP_COUNT
+	xref	FONT_FIRST_CHAR
+
+	; from vdp.s
+	xref	VDP_CTRL
+	xref	VDP_DATA
+
+FONT_BASE_TILE	EQU	1				; VRAM tile index where glyphs are loaded.
 														; Reserves FONT_NUM_CHARS tiles starting here —
 														; callers must not place other tiles in this range.
 
-;---------------------------------------------------------------
+	section .text
+
+; ------------------------------------------------------------------------------
 ; initFont
 ;
 ; Loads the font glyph tile data (fontData) into VRAM, starting at
@@ -38,19 +47,19 @@ FONT_BASE_TILE  EQU  1      ; VRAM tile index where glyphs are loaded.
 ; Input:  none
 ; Output: none
 ; Clobbers: d0, a0
-;---------------------------------------------------------------
+; ------------------------------------------------------------------------------
 initFont:
-	vdpVramWrite	FONT_BASE_TILE*32 ; $0000 purposefully left blank so uninitialised
-																	; data references show no tile
-	lea	fontData,a0
-	move.w	#FONT_DATA_LOOP_COUNT,d0
+	vdpVramWrite	FONT_BASE_TILE*32 	; $0000 purposefully left blank so 
+																		; uninitialised data references show no tile
+	lea						fontData,a0
+	move.w				#FONT_DATA_LOOP_COUNT,d0
 .loop:
 	move.w  (a0)+,VDP_DATA
 	dbra    d0,.loop
 .done:
 	rts
 
-;---------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; writeStringToNametable
 ;
 ; Writes a null-terminated ASCII string into the nametable as a
@@ -61,18 +70,18 @@ initFont:
 ; Input:  a0.l = pointer to null-terminated ASCII string
 ; Output: none
 ; Clobbers: d0, a0
-;---------------------------------------------------------------
+; ------------------------------------------------------------------------------
 writeStringToNametable:
 .loop:
-	move.b	(a0)+,d0		; read next character
-	beq.s	.done			; hit null terminator -> stop
+	move.b	(a0)+,d0							; read next character
+	beq.s		.done									; hit null terminator -> stop
 
-	sub.b	#FONT_FIRST_CHAR,d0	; d0 = glyph offset (0-94)
-	ext.w	d0			; byte -> word
-	add.w	#FONT_BASE_TILE,d0	; d0 = tile index
+	sub.b		#FONT_FIRST_CHAR,d0		; d0 = glyph offset (0-94)
+	ext.w		d0										; byte -> word
+	add.w		#FONT_BASE_TILE,d0		;	d0 = tile index
 
-	move.w	d0,VDP_DATA		; write nametable entry (palette 0)
-	bra.s	.loop
+	move.w	d0,VDP_DATA						; write nametable entry (palette 0)
+	bra.s		.loop
 .done:
 	rts
 	
