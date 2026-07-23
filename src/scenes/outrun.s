@@ -1,4 +1,4 @@
-;===============================================================================
+; ==============================================================================
 ; outrun.s
 ;
 ; OutRun-style pseudo-3D ground effect (Milestone 3).
@@ -13,23 +13,30 @@
 ;
 ; Follows the scene invariant: outrunInit assumes clean
 ; VRAM/CRAM, same as every other scene.
-;===============================================================================
+; ==============================================================================
 
-	section .text
+	include ../include/macro.s
 
+	; ----------------------------------------------------------------------------
+	; External definitions
+	; ----------------------------------------------------------------------------
+	xdef	outrunInit
+	xdef	outrunUpdate
+	xdef	outrunRender
+	
+	; ----------------------------------------------------------------------------
+	; External references
+	; ----------------------------------------------------------------------------
+	; from h_blank.s
+	xref	hblankInit
+	xref	hblank_line
+	
+	; from vdp.s
 	xref	CRAM_WRITE_CMD
 	xref	CRAM_WRITE_CMD_PAL1
 	xref	VDP_CTRL
 	xref	VDP_DATA
 	xref	VSRAM_WRITE_CMD
-
-	xref	hblank_line
-	xref	hblankInit
-
-	xdef	outrunInit
-	xdef	outrunUpdate
-	xdef	outrunRender
-	xdef	color_table
 
 ; ------------------------------------------------------------------------------
 ; EQU constants
@@ -41,269 +48,157 @@
 ; assembles as just "32". Every multi-token expression
 ; below is written with no internal whitespace.
 ; ------------------------------------------------------------------------------
-NAMETABLE_A_BASE	EQU		$C000
-HORIZON_LINE			EQU		56				; scanline where ground begins (sky/ground split)
-VISIBLE_ROWS 			EQU		56 				; Number of ground scanlines below the horizon
-COLOR_THRESHOLD		EQU		32*256		; Threshold for when to swap colors in the palette
 Z_MAP_K 					EQU		128*256		; Customisable value for z_map calculation
+
+VISIBLE_ROWS			EQU		56				; Number of ground scanlines below the horizon
+HORIZON_LINE			EQU		56				; scanline where ground begins (sky/ground split)
+
+COLOR_THRESHOLD		EQU		32*256		; Threshold for when to swap colors in the palette
 SCROLL_SPEED			EQU		256				; Larger = faster apparent forward motion
+
 ROAD_MAX_HW				EQU		100				; The maximum half width value for the road
 CENTER_X					EQU		160				; Center point of the screen in px for MD
 
-;===============================================================
-; World data - OutRun scene
-; Single solid 4bpp tile + base palette colours.
-; No movement yet, so this is the entire asset footprint.
-;===============================================================
+NAMETABLE_A_BASE	EQU		$C000
 
 	section .rodata
 
+; ------------------------------------------------------------------------------
 ; tileGrass
 ;	One 8x8 4bpp tile, every pixel = palette index 1.
 ;	Reused for both sky and grass regions - the visual
 ;	distinction comes entirely from which CRAM colour is
 ;	loaded at index 1 when each region is drawn/cycled,
 ;	not from the tile graphic itself.
+; ------------------------------------------------------------------------------
 tileGrass:
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
-	dc.b			$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
+	dc.b		$11,$11,$11,$11
 
+; ------------------------------------------------------------------------------
 ; tileRoad
 ;	One 8x8 4bpp tile, every pixel = palette index 2.
 ;	palette index 2 is set aside for the road.
+; ------------------------------------------------------------------------------
 tileRoad:
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
-	dc.b			$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
+	dc.b		$22,$22,$22,$22
 
 edgeTilesStart:
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
-	dc.b			$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
+	dc.b		$12,$22,$22,$22
 
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
-	dc.b			$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
+	dc.b		$11,$22,$22,$22
 
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
-	dc.b			$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
+	dc.b		$11,$12,$22,$22
 
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
-	dc.b			$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
+	dc.b		$11,$11,$22,$22
 
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
-	dc.b			$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
+	dc.b		$11,$11,$12,$22
 
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
-	dc.b			$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
+	dc.b		$11,$11,$11,$22
 
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
-	dc.b			$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
+	dc.b		$11,$11,$11,$12
 edgeTilesEnd:
 
+; ------------------------------------------------------------------------------
 ; outrunPalette
 ;	Base colours for this scene. skyColor is written once
 ;	at init and never touched again. groundColorA/B are
 ;	not written directly to CRAM here - outrunInit reads
 ;	them when building color_table, and outrunHblank
 ;	writes whichever one applies to each row at runtime.
+; ------------------------------------------------------------------------------
 skyColor:			
-	dc.w			$0E80								; Sky single color - light blue
+	dc.w		$0E80									; Sky single color - light blue
 groundColorA:
-	dc.w			$0888								; Ground Color A - dark grey
+	dc.w		$0888									; Ground Color A - dark grey
 groundColorB:	
-	dc.w			$0444								; Ground Color B - light grey
+	dc.w		$0444									; Ground Color B - light grey
 grassColorA:
-	dc.w			$00E0								; Grass color A - bright green
+	dc.w		$00E0									; Grass color A - bright green
 grassColorB:
-	dc.w			$0080								; Grass color B - dark green
+	dc.w		$0080									; Grass color B - dark green
 
 	section .bss
 
 phase_accum:
-	ds.w			1
+	ds.w		1
 color_table:
-	ds.w			112									; table of color indices, 2 entries per line
+	ds.w		112										; table of color indices, 2 entries per line
 																; (grass, ground). Rebuilt once per frame by
 																; populate_color_table; read every other line by
 																; outrunHblank to write CRAM.
 reciprical_table:
-	ds.w			56									; table of z depths for each scanline.
+	ds.w		56										; table of z depths for each scanline.
 																; Computationally expensive so generated during
 																; init and referenced when generating the
 																; color_table during program lifetime.
 width_map_table:
-	ds.w			14									; table of halfWidth values
+	ds.w		14										; table of halfWidth values
 																; (half the road width) for a given distance.
 
 	section .text
-
-	include ../include/macro.s
-
-; ------------------------------------------------------------------------------
-; populate_recipricals
-;	Computes the 56-word reciprocal distance table.
-;	recip(row) = Z_MAP_K / ((row*2)+1)   -- row = 0..55
-;	The (row*2)+1 divisor accounts for HBlank firing on
-;	every other real scanline (see hblank.s / REG10), so
-;	each table row spans two real scanlines of ground.
-;	Called once at effect init. Never touched at runtime --
-;	DIVU is too expensive to run per-frame, let alone per
-;	H-Blank.
-;	Clobbers: d0-d2, a0
-; ------------------------------------------------------------------------------
-populate_recipricals:
-	lea	reciprical_table,a0
-	moveq   #0,d1									; d1 = table row index (0-based)
-.loop:
-	move.l	#Z_MAP_K,d0						; dividend
-	move.w	d1,d2
-	add.w		d2,d2									; d2 = row*2 (real scanline offset)
-	addq.w	#1,d2									; divisor = (row*2)+1
-	divu.w	d2,d0									; d0.w = quotient
-	move.w	d0,(a0)+							; store word, low word only
-	addq.w	#1,d1
-	cmp.w		#VISIBLE_ROWS,d1
-	bne.s		.loop
-.done:
-	rts
-
-; ------------------------------------------------------------------------------
-; populate_color_table
-;	Rebuilds the 56-word color_table from the static
-;	reciprical_table, seeded from the current phase_accum.
-;	Multiple threshold crossings within a single row (near
-;	the horizon, where recip(row) can be several multiples
-;	of COLOR_THRESHOLD) are resolved by parity of the
-;	crossing count, not a single flip -- see PHASE_WRAP
-;	comment above for why parity, and why it must wrap at
-;	2x COLOR_THRESHOLD, not 1x.
-;
-;	Pure function of phase_accum: reads it, never writes it.
-;	phase_accum is owned exclusively by outrunUpdate -- this
-;	routine must not save anything back to it, even a
-;	"leftover remainder". (Previous bug: doing so replaced
-;	the intended small per-frame step with the full table-sum
-;	mod threshold, causing a near-full-range jump every frame.)
-;
-;	Called once per frame, from outrunUpdate. No DIVU at
-;	runtime -- pure adds and compares against the precomputed
-;	table.
-;	Clobbers: d0-d4, a0-a1
-; ------------------------------------------------------------------------------
-populate_color_table:
-	lea			reciprical_table,a0
-	lea			color_table,a1
-	move.w	phase_accum,d1				; carry accumulator across frames
-	moveq		#0,d3									; d3 = current color select (0/1)
-	move.w	#VISIBLE_ROWS-1,d4		; loop counter for dbra
-
-.rowLoop:
-	move.w	(a0)+,d0                ; d0 = recip(row)
-	add.w		d0,d1                   ; accumulate distance
-	moveq		#0,d2                   ; d2 = crossing count this row
-.crossLoop:
-	cmp.w		#COLOR_THRESHOLD,d1
-	blo.s		.noCross
-	sub.w		#COLOR_THRESHOLD,d1
-	addq.w	#1,d2
-	bra.s		.crossLoop
-.noCross:
-	btst		#0,d2                   ; odd crossing count -> toggle
-	beq.s		.writeColor
-	eor.w		#1,d3
-.writeColor:
-	tst.w		d3
-	beq.s		.colorA
-	move.w	grassColorB,(a1)+
-	move.w	groundColorB,(a1)+
-	bra.s		.nextRow
-.colorA:
-	move.w	grassColorA,(a1)+
-	move.w 	groundColorA,(a1)+
-.nextRow:
-	dbra		d4,.rowLoop
-.done:
-	rts
-
-; ------------------------------------------------------------------------------
-; populate_widthMap
-;	Computes the 14-word width_map_table, one halfWidth value per
-;	visible road row: halfWidth(r') = ROAD_MAX_HW * (r'+1) / 14,
-;	r' = 0..13. Produces a linear taper from a single half-width
-;	at the horizon out to ROAD_MAX_HW at the bottom row -- see
-;	project notes for why linear (not reciprocal) is correct here:
-;	screen-space road width and scanline offset from horizon are
-;	both proportional to 1/z, so their ratio is linear.
-;	Called once at effect init. Never touched at runtime -- DIVU
-;	is too expensive to run per-frame, let alone per H-Blank.
-;	Clobbers: d0-d1, a0
-; ------------------------------------------------------------------------------
-populate_widthMap:
-	lea			width_map_table,a0
-	move.l	#0,d0											; d0 set aside for r'
-.loop:
-	move.l	d0,d1											; Put r' into d1
-	addq.w	#1,d1											; Calculate (r'+1)
-	mulu.w	#ROAD_MAX_HW,d1						; ROAD_MAX_HW * (r'+1)
-	divu.w	#14,d1										; d1.w stores result
-	move.w	d1,(a0)+                	; store word, low word only
-	addq.w	#1,d0
-	cmp.w		#14,d0
-	bne.s		.loop
-.done:
-	rts
 
 ; ------------------------------------------------------------------------------
 ; outrunInit
@@ -329,8 +224,8 @@ outrunInit:
 																		; uninitialised data has no tile shown)
 
 .writeGrassTile:	
-	move.w	#7,d0											;	Set the tile write loop length
-	lea			tileGrass,a0							; Starting address to write from
+	move.w	#7,d0									;	Set the tile write loop length
+	lea			tileGrass,a0					; Starting address to write from
 .grassLoop:
 	move.l	(a0)+,d4
 	move.l	d4,VDP_DATA
@@ -356,9 +251,9 @@ outrunInit:
 	move.w	#0,phase_accum
 
 .populateTables:
-	bsr			populate_recipricals
-	bsr 		populate_color_table
-	bsr			populate_widthMap
+	bsr			populateRecipricals
+	bsr 		populateColorTable
+	bsr			populateWidthMap
 
 .writeNameTable:
 	move.l	#$40000003,VDP_CTRL		;	Give command to write to PlaneA NameTable
@@ -372,28 +267,28 @@ outrunInit:
 	dbra		d0,.writeSkyOuter
 
 .writeGroundTiles:
-	lea	width_map_table,a0
+	lea			width_map_table,a0
 	move.w	#13,d0	;	Set the loop length 
 .groundOuterLoop:
-	move.w	(a0)+,d1								; Load the width map entry for use in calculations
+	move.w	(a0)+,d1							; Load the width map entry for use in calculations
 	move.w	#CENTER_X,d2
-	sub.w		d1,d2										; Left edge
+	sub.w		d1,d2									; Left edge
 	move.w	#CENTER_X,d3
-	add.w		d1,d3										; Right edge
+	add.w		d1,d3									; Right edge
 	move.w	d2,d4
-	lsr.w		#3,d4										; leftTileCol
+	lsr.w		#3,d4									; leftTileCol
 	move.w	d3,d5
-	lsr.w		#3,d5										; rightTileCol
+	lsr.w		#3,d5									; rightTileCol
 	sub.w		d4,d5
 	move.w	d2,d6
-	andi.w	#%0000000000000111,d6		; leftOffset
+	andi.w	#%0000000000000111,d6	; leftOffset
 	cmp.w		#0,d6
-	beq.s		.roadCountReady					; offset==0: count is already correct
-	subq.w	#1,d5										; offset!=0: exclude both edge-tile columns
+	beq.s		.roadCountReady				; offset==0: count is already correct
+	subq.w	#1,d5									; offset!=0: exclude both edge-tile columns
 .roadCountReady:
 	subq.w	#1,d4
 .groundLeftLoop:
-	move.w	#$0001,VDP_DATA					; Write tile 1 in palette 0 (ground palette)
+	move.w	#$0001,VDP_DATA				; Write tile 1 in palette 0 (ground palette)
 	dbra		d4,.groundLeftLoop
 .groundEdgeLeft:
 	cmp.w		#0,d6
@@ -441,6 +336,120 @@ outrunInit:
 	rts
 
 ; ------------------------------------------------------------------------------
+; populateRecipricals
+;	Computes the 56-word reciprocal distance table.
+;	recip(row) = Z_MAP_K / ((row*2)+1)   -- row = 0..55
+;	The (row*2)+1 divisor accounts for HBlank firing on
+;	every other real scanline (see hblank.s / REG10), so
+;	each table row spans two real scanlines of ground.
+;	Called once at effect init. Never touched at runtime --
+;	DIVU is too expensive to run per-frame, let alone per
+;	H-Blank.
+;	Clobbers: d0-d2, a0
+; ------------------------------------------------------------------------------
+populateRecipricals:
+	lea			reciprical_table,a0
+	moveq   #0,d1									; d1 = table row index (0-based)
+.loop:
+	move.l	#Z_MAP_K,d0						; dividend
+	move.w	d1,d2
+	add.w		d2,d2									; d2 = row*2 (real scanline offset)
+	addq.w	#1,d2									; divisor = (row*2)+1
+	divu.w	d2,d0									; d0.w = quotient
+	move.w	d0,(a0)+							; store word, low word only
+	addq.w	#1,d1
+	cmp.w		#VISIBLE_ROWS,d1
+	bne.s		.loop
+.done:
+	rts
+
+; ------------------------------------------------------------------------------
+; populateColorTable
+;	Rebuilds the 56-word color_table from the static
+;	reciprical_table, seeded from the current phase_accum.
+;	Multiple threshold crossings within a single row (near
+;	the horizon, where recip(row) can be several multiples
+;	of COLOR_THRESHOLD) are resolved by parity of the
+;	crossing count, not a single flip -- see PHASE_WRAP
+;	comment above for why parity, and why it must wrap at
+;	2x COLOR_THRESHOLD, not 1x.
+;
+;	Pure function of phase_accum: reads it, never writes it.
+;	phase_accum is owned exclusively by outrunUpdate -- this
+;	routine must not save anything back to it, even a
+;	"leftover remainder". (Previous bug: doing so replaced
+;	the intended small per-frame step with the full table-sum
+;	mod threshold, causing a near-full-range jump every frame.)
+;
+;	Called once per frame, from outrunUpdate. No DIVU at
+;	runtime -- pure adds and compares against the precomputed
+;	table.
+;	Clobbers: d0-d4, a0-a1
+; ------------------------------------------------------------------------------
+populateColorTable:
+	lea			reciprical_table,a0
+	lea			color_table,a1
+	move.w	phase_accum,d1				; carry accumulator across frames
+	moveq		#0,d3									; d3 = current color select (0/1)
+	move.w	#VISIBLE_ROWS-1,d4		; loop counter for dbra
+
+.rowLoop:
+	move.w	(a0)+,d0							; d0 = recip(row)
+	add.w		d0,d1									; accumulate distance
+	moveq		#0,d2									; d2 = crossing count this row
+.crossLoop:
+	cmp.w		#COLOR_THRESHOLD,d1
+	blo.s		.noCross
+	sub.w		#COLOR_THRESHOLD,d1
+	addq.w	#1,d2
+	bra.s		.crossLoop
+.noCross:
+	btst		#0,d2									; odd crossing count -> toggle
+	beq.s		.writeColor
+	eor.w		#1,d3
+.writeColor:
+	tst.w		d3
+	beq.s		.colorA
+	move.w	grassColorB,(a1)+
+	move.w	groundColorB,(a1)+
+	bra.s		.nextRow
+.colorA:
+	move.w	grassColorA,(a1)+
+	move.w 	groundColorA,(a1)+
+.nextRow:
+	dbra		d4,.rowLoop
+.done:
+	rts
+
+; ------------------------------------------------------------------------------
+; populateWidthMap
+;	Computes the 14-word width_map_table, one halfWidth value per
+;	visible road row: halfWidth(r') = ROAD_MAX_HW * (r'+1) / 14,
+;	r' = 0..13. Produces a linear taper from a single half-width
+;	at the horizon out to ROAD_MAX_HW at the bottom row -- see
+;	project notes for why linear (not reciprocal) is correct here:
+;	screen-space road width and scanline offset from horizon are
+;	both proportional to 1/z, so their ratio is linear.
+;	Called once at effect init. Never touched at runtime -- DIVU
+;	is too expensive to run per-frame, let alone per H-Blank.
+;	Clobbers: d0-d1, a0
+; ------------------------------------------------------------------------------
+populateWidthMap:
+	lea			width_map_table,a0
+	move.l	#0,d0									; d0 set aside for r'
+.loop:
+	move.l	d0,d1									; Put r' into d1
+	addq.w	#1,d1									; Calculate (r'+1)
+	mulu.w	#ROAD_MAX_HW,d1				; ROAD_MAX_HW * (r'+1)
+	divu.w	#14,d1								; d1.w stores result
+	move.w	d1,(a0)+							; store word, low word only
+	addq.w	#1,d0
+	cmp.w		#14,d0
+	bne.s		.loop
+.done:
+	rts
+
+; ------------------------------------------------------------------------------
 ; outrunUpdate
 ;	Per-frame main loop hook. Advances phase_accum by
 ;	SCROLL_SPEED (with wraparound at PHASE_WRAP -- see the
@@ -456,7 +465,7 @@ outrunUpdate:
 	add.w		#COLOR_THRESHOLD*2,d0
 .noWrap:
 	move.w	d0,phase_accum
-	bsr			populate_color_table
+	bsr			populateColorTable
 .done:
 	rts
 
