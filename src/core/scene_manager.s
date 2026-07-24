@@ -29,7 +29,7 @@
 	xref	creditsRender
 	xref	creditsUpdate
 
-	; from header.s
+	; from h_blank.s
 	xref	hblankDisable
 
 	; from joypad.s
@@ -93,11 +93,6 @@ initScene:
 ; scene can react to input without reading joypad state itself (d2/previous
 ; is loaded proactively for scenes that need just-pressed detection later;
 ; cycleColorsUpdate doesn't use it yet).
-;
-;	TODO: active_effect has no bounds check. Incrementing past the last scene
-; or decrementing below 0 will compute an out-of-range sceneTable offset and
-; jsr to garbage. Needs a clamp or wraparound (e.g. mod scene count) in
-; .sceneChangeInc/.sceneChangeDec before this ships beyond MVP.
 ; ------------------------------------------------------------------------------
 updateScene:
 	move.b			current_joy_status,d1
