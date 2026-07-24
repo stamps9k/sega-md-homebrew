@@ -494,7 +494,7 @@ outrunHblank:
 	; Empirically-tuned delay: pushes the CRAM write past line N+1's
 	; blanking window so it lands in N+2's window instead. Re-tune if the instruction
 	; sequence around this call changes.
-	insertNOPs	56
+	insertNOPs	44
 
 	move.w	hblank_line,d0
 	cmp.w		#(HORIZON_LINE-0),d0
@@ -503,11 +503,10 @@ outrunHblank:
 	cmp.w		#VISIBLE_ROWS,d0
 	bhs.s		.done									; past bottom of ground band
 	move.l	#$C0020000,VDP_CTRL		; Point VDP at CRAM
-	move.w	d0,d1									; hblank_line to separate register for calcs
-	lsl.w		#2,d1									; word index -> byte offset
+	lsl.w		#2,d0									; word index -> byte offset
 	lea			color_table,a0
-	move.w	(a0,d1.w),VDP_DATA
-	add.w		#2,d1									; word index -> byte offset for second entry
-	move.w	(a0,d1.w),VDP_DATA
+	move.w	(a0,d0.w),VDP_DATA
+	add.w		#2,d0									; word index -> byte offset for second entry
+	move.w	(a0,d0.w),VDP_DATA
 .done:
 	rts
