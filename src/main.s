@@ -8,8 +8,9 @@
 ;		4. Joypad port setup
 ;		5. Initialise VDP registers
 ;		6. Clear VRAM
-;		7. Init RAM variables
-;		8. Re-enable the interrupts & loop forever
+;		7. Cold-boot hblank_handler safety (disable IE1, zero handler pointer)
+;		8. Init RAM variables
+;		9. Re-enable the interrupts & loop forever
 ; ==============================================================================
 
 	; ----------------------------------------------------------------------------
@@ -20,6 +21,9 @@
 	; ----------------------------------------------------------------------------
 	; External references
 	; ----------------------------------------------------------------------------
+	; from hblank.s
+	xref	hblankDisable
+	
 	; from joyad.s
 	xref	IOCTRL1
 	xref	IODATA1
@@ -101,13 +105,24 @@ entryPoint:
 	jsr			clearVdpRam
 
 	; ----------------------------------------------------------------------------
-	; 7. Init the RAM variables and enter the main loop
+	; 7. Cold-boot hblank_handler safety
+	; hblank_handler lives in uninitialised RAM until the first scene's init
+	; calls hblankSetHandler. If HBlank interrupts were somehow live before
+	; that point, the ISR's register-indirect jump would branch into garbage.
+	; hblankDisable both zeroes the pointer and disables IE1 at the VDP,
+	; closing that window. Must run before initScene, which for some scenes
+	; calls hblankSetHandler almost immediately.
+	; ----------------------------------------------------------------------------
+	jsr			hblankDisable
+
+	; ----------------------------------------------------------------------------
+	; 8. Init the RAM variables and enter the main loop
 	; ----------------------------------------------------------------------------	
 	jsr			initState
 	jsr			initScene
 
 	; ----------------------------------------------------------------------------
-	; 8. Enable the VBlank Interrupt
+	; 9. Enable the VBlank Interrupt
 	; ----------------------------------------------------------------------------
 	move.w	#$2000,SR
 	
