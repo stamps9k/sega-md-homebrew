@@ -58,10 +58,13 @@ RUN cd /tmp/binutils-${BINUTILS_VERSION} \
 #
 # The resulting binary is placed in /opt/vasm/bin/
 # -----------------------------------------------------------------------------
+# Downloaded from the personal mirror rather than upstream
+# (sun.hasenbraten.de serves only an unversioned tarball over plain HTTP
+# and is not reliably available). The checksum still pins the exact file.
 ARG VASM_SHA256=c84b2de1cbb87831795fe64a85c5d9a7002a766e3a7c30b0a2d7d5e99d878f49
 
 RUN curl -fsSL \
-    "http://sun.hasenbraten.de/vasm/release/vasm.tar.gz" \
+    "https://github.com/stamps9k/vendor-archive/releases/download/vasm-2.0/vasm-2.0.tar.gz" \
     -o /tmp/vasm.tar.gz \
   && echo "${VASM_SHA256}  /tmp/vasm.tar.gz" | sha256sum -c - \
   && tar -xzf /tmp/vasm.tar.gz -C /tmp \
