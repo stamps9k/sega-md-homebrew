@@ -98,7 +98,7 @@ RUN make
 # ---------------------------------------------------------------------------
 # Stage 2: serve the ROM via EmulatorJS
 # ---------------------------------------------------------------------------
-FROM nginx:alpine AS runtime
+FROM nginx:1.31-alpine3.24 AS runtime
 
 COPY web/index.html /usr/share/nginx/html/index.html
 COPY web/robots.txt /usr/share/nginx/html/robots.txt
