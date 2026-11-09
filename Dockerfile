@@ -8,6 +8,9 @@
 FROM alpine:3.24 AS builder
 
 ARG BINUTILS_VERSION=2.46.1
+# SHA-256 of binutils-${BINUTILS_VERSION}.tar.xz, checked against sourceware's
+# published sha512.sum. Keep in sync with BINUTILS_SHA256 in the dev Dockerfile.
+ARG BINUTILS_SHA256=e127a709cba24c76de8936cb7083dd768f28cd37eb010492e2f19b71eb1294e4
 
 RUN apk add --no-cache \
     build-base \
@@ -31,6 +34,7 @@ RUN apk add --no-cache \
 RUN curl -fsSL \
     "https://sourceware.org/pub/binutils/releases/binutils-${BINUTILS_VERSION}.tar.xz" \
     -o /tmp/binutils.tar.xz \
+  && echo "${BINUTILS_SHA256}  /tmp/binutils.tar.xz" | sha256sum -c - \
   && tar -xJf /tmp/binutils.tar.xz -C /tmp \
   && rm /tmp/binutils.tar.xz
 
