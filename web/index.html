@@ -16,7 +16,7 @@
 
     <meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Homebrew</title>
+    <title>Ghost In The VDP</title>
 		<script>
 			// Which ROM this page shows comes from the URL (?rom=original), so
 			// each one has its own address and the back button works. Anything
@@ -26,7 +26,6 @@
 			(function () {
 				var rom = new URLSearchParams(window.location.search).get('rom');
 				document.documentElement.dataset.rom = rom === 'original' ? 'original' : 'ghost';
-				if (rom !== 'original') { document.title = 'Ghost In The VDP'; }
 			})();
 		</script>
 		<style>
@@ -118,8 +117,7 @@
 		</nav>
 		<main>
 			<div class="container text-center p-3">
-				<h1 class="rom-ghost h1 fw-bold mb-0">Ghost In The VDP</h1>
-				<h1 class="rom-original h1 fw-bold mb-0">Homebrew Demo</h1>
+				<h1 class="h1 fw-bold mb-0">Ghost In The VDP</h1>
 				<nav id="rom-switch" class="btn-group mt-3 font-monospace" role="group" aria-label="Choose a ROM">
 					<a class="btn btn-sm btn-outline-secondary" href="?rom=ghost" data-rom-link="ghost">AI-written</a>
 					<a class="btn btn-sm btn-outline-secondary" href="?rom=original" data-rom-link="original">Hand-written</a>
