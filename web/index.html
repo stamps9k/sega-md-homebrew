@@ -16,8 +16,35 @@
 
     <meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Homebrew</title>
+    <title>Ghost In The VDP</title>
+		<script>
+			// Which ROM this page shows comes from the URL (?rom=original), so
+			// each one has its own address and the back button works. Anything
+			// else, including no parameter at all, means Ghost in the VDP. This
+			// runs in <head> so the attribute is on <html> before the body paints
+			// and the CSS below never shows the wrong ROM's content, even briefly.
+			(function () {
+				var rom = new URLSearchParams(window.location.search).get('rom');
+				document.documentElement.dataset.rom = rom === 'original' ? 'original' : 'ghost';
+			})();
+		</script>
 		<style>
+			/* Content for one ROM only. Hidden with !important because the
+			   wrapped elements may carry Bootstrap display utilities. With no
+			   attribute (script blocked) Ghost in the VDP's content shows. */
+			html:not([data-rom="original"]) .rom-original,
+			html[data-rom="original"] .rom-ghost {
+				display: none !important;
+			}
+			#rom-switch .btn {
+				min-width: 9rem;
+			}
+			html:not([data-rom="original"]) #rom-switch [data-rom-link="ghost"],
+			html[data-rom="original"] #rom-switch [data-rom-link="original"] {
+				color: var(--bs-body-bg);
+				background-color: var(--bs-body-color);
+				border-color: var(--bs-body-color);
+			}
 			#game-frame {
 				padding: 5px;
 				position: relative;
@@ -90,7 +117,13 @@
 		</nav>
 		<main>
 			<div class="container text-center p-3">
-				<h1 class="h1 fw-bold mb-0">Homebrew Demo</h1>
+				<h1 class="h1 fw-bold mb-0">Ghost In The VDP</h1>
+				<nav id="rom-switch" class="btn-group mt-3 font-monospace" role="group" aria-label="Choose a ROM">
+					<a class="btn btn-sm btn-outline-secondary" href="?rom=ghost" data-rom-link="ghost">AI-written</a>
+					<a class="btn btn-sm btn-outline-secondary" href="?rom=original" data-rom-link="original">Hand-written</a>
+				</nav>
+				<p class="rom-original text-muted-custom small mb-0 mt-2">Mega Drive demo effects, hand-written in 68000 assembly.</p>
+				<p class="rom-ghost text-muted-custom small mb-0 mt-2">Mega Drive demoscene effects in 68000 assembly, written by an AI agent and reviewed by a human.</p>
 			</div>
 			<div id="game-frame" class="w-100 card border border-2 border-accent-subtle rounded-4 shadow-lg">
 				<div id="game"></div>
@@ -116,8 +149,26 @@
 				// page, at which point we go back to letting the page scroll.
 				var gameFrame = document.getElementById('game-frame');
 				var gameOverlay = document.getElementById('game-overlay');
+				var romSwitch = document.getElementById('rom-switch');
 				var emulatorFocused = false;
 				var emulatorStarted = false;
+
+				// Set in <head> from ?rom=. Each ROM file sits next to this page.
+				var currentRom = document.documentElement.dataset.rom;
+				var romUrls = { original: 'rom.bin', ghost: 'ghost.bin' };
+
+				// Switching ROM is a plain link to the other ?rom= address, i.e. a
+				// full page load. EmulatorJS is configured through globals and
+				// loaded once, with no supported way to swap the game in place,
+				// so a fresh page is the reliable way to boot the other ROM; it
+				// comes up behind the same click-to-start overlay. The option for
+				// the ROM already running is marked current and does nothing.
+				romSwitch.querySelectorAll('[data-rom-link]').forEach(function (link) {
+					if (link.dataset.romLink === currentRom) {
+						link.setAttribute('aria-current', 'page');
+						link.addEventListener('click', function (e) { e.preventDefault(); });
+					}
+				});
 
 				function startEmulator() {
 					// EmulatorJS's config globals + its loader script are only
@@ -134,7 +185,7 @@
 					// this page, never from carried-over navigation state.
 					window.EJS_player = '#game';
 					window.EJS_core = 'segaMD';
-					window.EJS_gameUrl = 'rom.bin';
+					window.EJS_gameUrl = romUrls[currentRom];
 					window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
 					window.EJS_startOnLoaded = true;
 					window.EJS_backgroundColor = '#14161c';
@@ -156,6 +207,11 @@
 					// synthetic click was satisfying insideGame and hiding the
 					// overlay immediately on load, before any real interaction.
 					if (!e.isTrusted) { return; }
+
+					// A click on the ROM switch is leaving this page (or, on the
+					// current ROM, doing nothing), so it must not boot the
+					// emulator here first.
+					if (romSwitch.contains(e.target)) { return; }
 
 					var insideGame = gameFrame.contains(e.target);
 					emulatorFocused = insideGame;
@@ -183,11 +239,41 @@
 				}, { capture: true });
 			</script>
 			<div class="cover-container mx-auto w-100 px-3 py-4 text-start">
-				<p class="text-center mb-4">
+				<p class="rom-original text-center mb-4">
 					<a class="link-accent" target="_blank" href="https://github.com/stamps9k/sega-md-homebrew">Source Code</a>
 				</p>
+				<p class="rom-ghost text-center mb-4">
+					<a class="link-accent" target="_blank" href="https://github.com/stamps9k/ghost-in-the-vdp">Source Code</a>
+				</p>
 
-				<section>
+				<section class="rom-ghost">
+					<h2 class="h6 fw-semibold mb-3">Effects</h2>
+					<ul class="list-unstyled d-flex flex-column gap-2 mb-0 small">
+						<li class="d-flex align-items-baseline gap-2 fw-semibold">
+							<span class="dot-accent" aria-hidden="true"></span>
+							Colour cycle (placeholder scene carried over from the hand-written ROM)
+						</li>
+						<li class="d-flex align-items-baseline gap-2 fw-semibold">
+							<span class="dot-accent" aria-hidden="true"></span>
+							Cyberpunk city parallax: five depths from per-line scrolling (B reverses, C changes speed, Start pauses)
+						</li>
+						<li class="d-flex align-items-baseline gap-2 fw-semibold">
+							<span class="dot-accent" aria-hidden="true"></span>
+							Coast road: Out Run style pseudo-3D road along a Miami beach at sunset, with palette-cycled stripes and per-line curves (B reverses, C changes speed, Start pauses)
+						</li>
+						<li class="d-flex align-items-baseline gap-2 fw-semibold">
+							<span class="dot-accent" aria-hidden="true"></span>
+							Moonlit waterfall: palette-cycled falling water, a shimmering plunge pool from per-line scrolling, and sprite spray (B reverses the flow, C changes speed, Start pauses)
+						</li>
+						<li class="d-flex align-items-baseline gap-2 fw-semibold">
+							<span class="dot-accent" aria-hidden="true"></span>
+							AI credits: a streamed text scroll that ripples at the screen edges and settles in the middle, over a hex dump of the scene's own machine code (B reverses, C changes the wave, Start pauses)
+						</li>
+					</ul>
+					<p class="small text-muted-custom mt-3 mb-0">Left/Right on the D-pad switches scene.</p>
+				</section>
+
+				<section class="rom-original">
 					<h2 class="h6 fw-semibold mb-3">Build progress</h2>
 					<ul class="list-unstyled d-flex flex-column gap-2 mb-0 small">
 						<li class="d-flex align-items-baseline gap-2 text-muted-custom text-decoration-line-through">
@@ -237,9 +323,13 @@
 							<div class="text-muted-custom">Build env</div>
 							<div>Docker, Alpine 3.24</div>
 						</div>
-						<div class="col">
+						<div class="col rom-original">
 							<div class="text-muted-custom">Reference emulator</div>
 							<div>BlastEm</div>
+						</div>
+						<div class="col rom-ghost">
+							<div class="text-muted-custom">Test harness</div>
+							<div>Genesis Plus GX (libretro, headless)</div>
 						</div>
 					</div>
 				</section>

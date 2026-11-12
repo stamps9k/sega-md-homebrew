@@ -1,5 +1,13 @@
 # syntax=docker/dockerfile:1
 
+# Published runtime image of Ghost in the VDP (the AI-written ROM), pushed to
+# GHCR by that repo's deploy-latest workflow. Its built ROM is copied into the
+# runtime stage below so the page can switch between the two ROMs. Pass a
+# digest (--build-arg GHOST_IMAGE=ghcr.io/stamps9k/ghost-in-the-vdp@sha256:...)
+# for a reproducible build. The package is private: pulling it needs a GHCR
+# login with package read access.
+ARG GHOST_IMAGE=ghcr.io/stamps9k/ghost-in-the-vdp:latest
+
 # ---------------------------------------------------------------------------
 # Stage 1: build the ROM
 #
@@ -96,7 +104,15 @@ COPY rom/ .
 RUN make
 
 # ---------------------------------------------------------------------------
-# Stage 2: serve the ROM via EmulatorJS
+# Stage 2: the Ghost in the VDP ROM
+#
+# COPY --from can't expand a build arg, so the image gets a named stage.
+# Only its rom.bin is used.
+# ---------------------------------------------------------------------------
+FROM ${GHOST_IMAGE} AS ghost
+
+# ---------------------------------------------------------------------------
+# Stage 3: serve both ROMs via EmulatorJS
 # ---------------------------------------------------------------------------
 FROM nginx:1.31-alpine3.24 AS runtime
 
@@ -105,6 +121,9 @@ COPY web/robots.txt /usr/share/nginx/html/robots.txt
 
 # makefile's TARGET is "hello", output lands in pkg/hello.bin.
 COPY --from=builder /rom/pkg/hello.bin /usr/share/nginx/html/rom.bin
+
+# Ghost's runtime image serves its ROM as rom.bin; here it becomes ghost.bin.
+COPY --from=ghost /usr/share/nginx/html/rom.bin /usr/share/nginx/html/ghost.bin
 
 EXPOSE 80
 
